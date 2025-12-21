@@ -1,0 +1,99 @@
+# ================================
+# Reusable Workflow: Quality Check
+# ================================
+# Can be called from other workflows
+# Runs: lint, typecheck, test для одного package
+
+name: Quality Check
+
+on:
+  workflow_call:
+    inputs:
+      package:
+        description: 'Package to check (backend, frontend, shared)'
+        required: true
+        type: string
+      working-directory:
+        description: 'Working directory'
+        required: true
+        type: string
+
+jobs:
+  quality:
+    name: ${{ inputs.package }} quality checks
+    runs-on: ubuntu-latest
+
+    steps:
+      # ================================
+      # Checkout
+      # ================================
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # ================================
+      # Setup Node.js with caching
+      # ================================
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # ================================
+      # Setup pnpm
+      # ================================
+      - name: Install pnpm
+        run: npm install -g pnpm@10.18.3
+
+      # ================================
+      # Get pnpm store directory
+      # ================================
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      # ================================
+      # Cache pnpm store
+      # ================================
+      - name: Setup pnpm cache
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      # ================================
+      # Install dependencies
+      # ================================
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # ================================
+      # Lint
+      # ================================
+      - name: Run ESLint
+        working-directory: ${{ inputs.working-directory }}
+        run: pnpm lint
+
+      # ================================
+      # Type Check
+      # ================================
+      - name: Run TypeScript type check
+        working-directory: ${{ inputs.working-directory }}
+        run: pnpm exec tsc --noEmit
+
+      # ================================
+      # Unit Tests
+      # ================================
+      - name: Run tests
+        working-directory: ${{ inputs.working-directory }}
+        run: pnpm test
+        continue-on-error: false
+
+      # ================================
+      # Build
+      # ================================
+      - name: Build
+        working-directory: ${{ inputs.working-directory }}
+        run: pnpm build

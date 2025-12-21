@@ -1,0 +1,49 @@
+# ================================
+# Docker Image Security Scan
+# ================================
+# Scans images для vulnerabilities после build
+
+name: Docker Scan
+
+on:
+  workflow_run:
+    workflows: ["Docker Build"]
+    types:
+      - completed
+
+jobs:
+  scan:
+    name: Scan Docker Images
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    strategy:
+      matrix:
+        image: [backend, frontend]
+
+    steps:
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull image
+        run: |
+          docker pull ghcr.io/${{ github.repository }}/${{ matrix.image }}:${{ github.ref_name }}
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ghcr.io/${{ github.repository }}/${{ matrix.image }}:${{ github.ref_name }}
+          format: 'table'
+          exit-code: '0'
+          ignore-unfixed: true
+          severity: 'CRITICAL,HIGH'
+
+      - name: Upload Trivy results
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'trivy-results.sarif'
+        continue-on-error: true

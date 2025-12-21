@@ -1,0 +1,139 @@
+# ================================
+# Branch Protection Workflow
+# ================================
+# Validates branch names and commit messages
+# Prevents direct pushes to protected branches
+
+name: Branch Protection
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - main
+      - develop
+
+jobs:
+  # ================================
+  # Validate Branch Name
+  # ================================
+  validate-branch:
+    name: Validate Branch Name
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check branch name
+        run: |
+          BRANCH_NAME="${{ github.head_ref }}"
+          echo "🔍 Checking branch name: $BRANCH_NAME"
+
+          # Valid branch patterns
+          VALID_PATTERNS=(
+            "^feature/[a-zA-Z0-9-]+$"
+            "^fix/[a-zA-Z0-9-]+$"
+            "^hotfix/[a-zA-Z0-9-]+$"
+            "^refactor/[a-zA-Z0-9-]+$"
+            "^chore/[a-zA-Z0-9-]+$"
+            "^docs/[a-zA-Z0-9-]+$"
+            "^test/[a-zA-Z0-9-]+$"
+            "^perf/[a-zA-Z0-9-]+$"
+          )
+
+          VALID=false
+          for pattern in "${VALID_PATTERNS[@]}"; do
+            if [[ $BRANCH_NAME =~ $pattern ]]; then
+              VALID=true
+              echo "✅ Branch name matches pattern: $pattern"
+              break
+            fi
+          done
+
+          if [ "$VALID" = false ]; then
+            echo ""
+            echo "❌ Invalid branch name: $BRANCH_NAME"
+            echo ""
+            echo "Branch name must follow one of these patterns:"
+            echo "  - feature/<description>"
+            echo "  - fix/<description>"
+            echo "  - hotfix/<description>"
+            echo "  - refactor/<description>"
+            echo "  - chore/<description>"
+            echo "  - docs/<description>"
+            echo "  - test/<description>"
+            echo "  - perf/<description>"
+            echo ""
+            echo "Examples:"
+            echo "  ✅ feature/add-user-auth"
+            echo "  ✅ fix/timer-bug"
+            echo "  ✅ hotfix/critical-security"
+            echo "  ❌ my-feature"
+            echo "  ❌ feature-add-auth"
+            echo ""
+            exit 1
+          fi
+
+  # ================================
+  # Validate PR Target Branch
+  # ================================
+  validate-target-branch:
+    name: Validate Target Branch
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check PR targets correct branch
+        run: |
+          SOURCE_BRANCH="${{ github.head_ref }}"
+          TARGET_BRANCH="${{ github.base_ref }}"
+
+          echo "🔍 Source: $SOURCE_BRANCH"
+          echo "🔍 Target: $TARGET_BRANCH"
+
+          # Feature/fix/etc should target develop
+          if [[ $SOURCE_BRANCH =~ ^(feature|fix|refactor|chore|docs|test|perf)/ ]]; then
+            if [ "$TARGET_BRANCH" != "develop" ]; then
+              echo ""
+              echo "❌ Branch $SOURCE_BRANCH should target 'develop', not '$TARGET_BRANCH'"
+              echo ""
+              echo "Feature branches should be merged into develop first."
+              echo "After testing, develop will be merged into main for release."
+              echo ""
+              exit 1
+            fi
+          fi
+
+          # Hotfix should target main
+          if [[ $SOURCE_BRANCH =~ ^hotfix/ ]]; then
+            if [ "$TARGET_BRANCH" != "main" ]; then
+              echo ""
+              echo "❌ Hotfix branch should target 'main', not '$TARGET_BRANCH'"
+              echo ""
+              exit 1
+            fi
+          fi
+
+          echo "✅ Target branch is correct"
+
+  # ================================
+  # Status Check Summary
+  # ================================
+  protection-status:
+    name: Branch Protection Status
+    runs-on: ubuntu-latest
+    needs:
+      - validate-branch
+      - validate-target-branch
+    if: always()
+    steps:
+      - name: Check all validations passed
+        run: |
+          echo "🔒 Branch Protection Checks:"
+          echo ""
+          echo "  Branch Name: ${{ needs.validate-branch.result }}"
+          echo "  Target Branch: ${{ needs.validate-target-branch.result }}"
+          echo ""
+
+          if [[ "${{ needs.validate-branch.result }}" != "success" ]] || \
+             [[ "${{ needs.validate-target-branch.result }}" != "success" ]]; then
+            echo "❌ Some branch protection checks failed"
+            exit 1
+          fi
+
+          echo "✅ All branch protection checks passed"

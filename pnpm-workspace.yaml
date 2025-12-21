@@ -1,0 +1,9 @@
+# pnpm Workspace Configuration
+# Определяет какие директории являются workspace packages
+
+packages:
+  # Deployable applications
+  - 'apps/*'
+
+  # Shared packages (libraries, utilities, types)
+  - 'packages/*'

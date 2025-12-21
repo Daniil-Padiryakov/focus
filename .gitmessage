@@ -1,0 +1,36 @@
+# <type>(<scope>): <subject>
+#
+# <body>
+#
+# <footer>
+
+# ════════════════════════════════════════════════════════════
+# Type:
+#   feat:     New feature
+#   fix:      Bug fix
+#   docs:     Documentation only
+#   style:    Formatting (no code change)
+#   refactor: Code restructuring
+#   perf:     Performance improvement
+#   test:     Adding/updating tests
+#   chore:    Build process, dependencies
+#   ci:       CI/CD changes
+#
+# Scope:
+#   backend, frontend, shared, auth, pomodoro, database, 
+#   docker, ci, deps
+#
+# Subject:
+#   - Use imperative mood ("add" not "added")
+#   - Lowercase first letter
+#   - No period at the end
+#   - Max 100 characters
+#
+# Body (optional):
+#   - Explain WHAT and WHY (not HOW)
+#   - Wrap at 100 characters
+#
+# Footer (optional):
+#   - Reference issues: Closes #123, Refs #456
+#   - Breaking changes: BREAKING CHANGE: description
+# ════════════════════════════════════════════════════════════

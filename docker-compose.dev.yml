@@ -1,0 +1,107 @@
+services:
+  # ================================
+  # PostgreSQL (Development)
+  # ================================
+  postgres:
+    ports:
+      - '5432:5432'
+
+    # Verbose logging для debugging
+    command:
+      - postgres
+      - -c
+      - log_statement=all
+      - -c
+      - log_destination=stderr
+      - -c
+      - logging_collector=off
+
+  # ================================
+  # Backend (Development)
+  # ================================
+  backend:
+    build:
+      target: development
+      args:
+        - NODE_ENV=development
+
+    # BIND MOUNTS для hot reload
+    volumes:
+      # Source code (live updates)
+      - ./packages/shared:/app/packages/shared:cached
+      - ./apps/backend/src:/app/apps/backend/src:cached
+      - ./apps/backend/test:/app/apps/backend/test:cached
+
+      # Configuration files
+      - ./apps/backend/tsconfig.json:/app/apps/backend/tsconfig.json:ro
+      - ./apps/backend/tsconfig.build.json:/app/apps/backend/tsconfig.build.json:ro
+      - ./apps/backend/nest-cli.json:/app/apps/backend/nest-cli.json:ro
+      - ./apps/backend/nodemon.json:/app/apps/backend/nodemon.json:ro
+
+      # Database files
+      - ./apps/backend/src/database:/app/apps/backend/src/database:cached
+
+      # EXCLUDE node_modules (use from image)
+      - /app/node_modules
+      - /app/apps/backend/node_modules
+      - /app/packages/shared/node_modules
+
+    ports:
+      - '3000:3000' # API
+      - '9229:9229' # Debugger
+
+    environment:
+      NODE_ENV: development
+      LOG_LEVEL: debug
+      LOG_PRETTY: 'true'
+      DATABASE_DEBUG: 'true'
+
+    # ✅ ИСПРАВЛЕНО: используй --filter
+    command: ['pnpm', '--filter', '@focus/backend', 'run', 'dev']
+
+    # stdin_open и tty для interactive debugging
+    stdin_open: true
+    tty: true
+
+  # ================================
+  # Frontend (Development)
+  # ================================
+  frontend:
+    build:
+      target: development
+      args:
+        - VITE_API_URL=http://localhost:3000
+
+    # BIND MOUNTS для HMR
+    volumes:
+      # Source code
+      - ./packages/shared:/app/packages/shared:cached
+      - ./apps/frontend/src:/app/apps/frontend/src:cached
+      - ./apps/frontend/public:/app/apps/frontend/public:cached
+
+      # Configuration files
+      - ./apps/frontend/index.html:/app/apps/frontend/index.html:ro
+      - ./apps/frontend/vite.config.ts:/app/apps/frontend/vite.config.ts:ro
+      - ./apps/frontend/tsconfig.json:/app/apps/frontend/tsconfig.json:ro
+      - ./apps/frontend/tsconfig.node.json:/app/apps/frontend/tsconfig.node.json:ro
+
+      # EXCLUDE node_modules
+      - /app/node_modules
+      - /app/apps/frontend/node_modules
+      - /app/packages/shared/node_modules
+
+    ports:
+      - '5173:5173' # Vite dev server
+
+    environment:
+      NODE_ENV: development
+      VITE_API_URL: http://localhost:3000
+      # Vite HMR настройки
+      CHOKIDAR_USEPOLLING: 'false'
+      WATCHPACK_POLLING: 'false'
+
+    # ✅ ИСПРАВЛЕНО: используй --filter
+    command: ['pnpm', '--filter', '@focus/frontend', 'run', 'dev', '--host', '0.0.0.0']
+
+    stdin_open: true
+    tty: true

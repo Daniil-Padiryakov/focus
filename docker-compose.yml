@@ -1,0 +1,136 @@
+services:
+  # ================================
+  # PostgreSQL Database
+  # ================================
+  postgres:
+    image: postgres:14-alpine
+    container_name: ${COMPOSE_PROJECT_NAME}-postgres
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_USER: ${DATABASE_USER}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+      POSTGRES_DB: ${DATABASE_NAME}
+      PGDATA: /var/lib/postgresql/data/pgdata
+
+      # PostgreSQL optimization settings
+      POSTGRES_INITDB_ARGS: '--encoding=UTF8 --lc-collate=en_US.UTF-8 --lc-ctype=en_US.UTF-8'
+
+    volumes:
+      # Data persistence (named volume)
+      - postgres_data:/var/lib/postgresql/data
+
+      # Init scripts (автоматически выполняются при первом запуске)
+      - ./docker/postgres/01-init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+
+      # Custom postgresql.conf (опционально)
+      # - ./docker/postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+
+    # Health check (обязательно для depends_on)
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${DATABASE_USER} -d ${DATABASE_NAME}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+    networks:
+      - app-network
+
+    # Logging
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '10m'
+        max-file: '3'
+
+  # ================================
+  # Backend API
+  # ================================
+  backend:
+    container_name: ${COMPOSE_PROJECT_NAME}-backend
+    restart: unless-stopped
+
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+      target: development
+
+    # CRITICAL: depends_on с health check condition
+    depends_on:
+      postgres:
+        condition: service_healthy # Ждём пока PostgreSQL готов
+
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+
+      # Database connection
+      DATABASE_HOST: postgres # Service name = hostname в Docker network
+      DATABASE_PORT: 5432
+      DATABASE_USER: ${DATABASE_USER}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+      DATABASE_NAME: ${DATABASE_NAME}
+
+      # Connection pooling (Knex.js config)
+      DATABASE_POOL_MIN: ${DATABASE_POOL_MIN}
+      DATABASE_POOL_MAX: ${DATABASE_POOL_MAX}
+      DATABASE_POOL_IDLE_TIMEOUT: 10000
+      DATABASE_POOL_ACQUIRE_TIMEOUT: 30000
+
+      # Database SSL (disabled в dev, enabled в prod)
+      DATABASE_SSL: 'false'
+
+      # Authentication ← ADD THESE!
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
+
+      # Security ← ADD THIS!
+      CORS_ORIGIN: ${CORS_ORIGIN}
+
+      # Logging
+      LOG_LEVEL: ${LOG_LEVEL}
+      LOG_PRETTY: ${LOG_PRETTY}
+
+    networks:
+      - app-network
+
+  # ================================
+  # Frontend
+  # ================================
+  frontend:
+    container_name: ${COMPOSE_PROJECT_NAME}-frontend
+    restart: unless-stopped
+
+    build:
+      context: .
+      dockerfile: apps/frontend/Dockerfile
+      target: development
+
+    depends_on:
+      - backend
+
+    environment:
+      NODE_ENV: development
+
+    networks:
+      - app-network
+
+# ================================
+# Networks
+# ================================
+networks:
+  app-network:
+    driver: bridge
+    name: ${COMPOSE_PROJECT_NAME}-network
+
+# ================================
+# Volumes
+# ================================
+volumes:
+  # Named volume для PostgreSQL data
+  # Данные persisted между docker-compose down/up
+  # Удаляется только с docker-compose down -v
+  postgres_data:
+    driver: local
+    name: ${COMPOSE_PROJECT_NAME}-postgres-data

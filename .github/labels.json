@@ -1,0 +1,157 @@
+[
+  {
+    "name": "feature",
+    "color": "0E8A16",
+    "description": "New feature or request"
+  },
+  {
+    "name": "bug",
+    "color": "D73A4A",
+    "description": "Something isn't working"
+  },
+  {
+    "name": "hotfix",
+    "color": "B60205",
+    "description": "Critical bug fix for production"
+  },
+  {
+    "name": "refactoring",
+    "color": "FBCA04",
+    "description": "Code refactoring"
+  },
+  {
+    "name": "maintenance",
+    "color": "FEF2C0",
+    "description": "Maintenance and chores"
+  },
+  {
+    "name": "documentation",
+    "color": "0075CA",
+    "description": "Documentation improvements"
+  },
+  {
+    "name": "testing",
+    "color": "BFD4F2",
+    "description": "Testing related"
+  },
+  {
+    "name": "performance",
+    "color": "5319E7",
+    "description": "Performance improvements"
+  },
+  {
+    "name": "backend",
+    "color": "D876E3",
+    "description": "Backend related"
+  },
+  {
+    "name": "frontend",
+    "color": "C5DEF5",
+    "description": "Frontend related"
+  },
+  {
+    "name": "shared",
+    "color": "E99695",
+    "description": "Shared package changes"
+  },
+  {
+    "name": "database",
+    "color": "D4C5F9",
+    "description": "Database related"
+  },
+  {
+    "name": "docker",
+    "color": "006B75",
+    "description": "Docker related"
+  },
+  {
+    "name": "ci-cd",
+    "color": "1D76DB",
+    "description": "CI/CD related"
+  },
+  {
+    "name": "configuration",
+    "color": "FFA500",
+    "description": "Configuration changes"
+  },
+  {
+    "name": "security",
+    "color": "FF0000",
+    "description": "Security related"
+  },
+  {
+    "name": "breaking-change",
+    "color": "FF0000",
+    "description": "Breaking change"
+  },
+  {
+    "name": "needs-triage",
+    "color": "EDEDED",
+    "description": "Needs triage"
+  },
+  {
+    "name": "good first issue",
+    "color": "7057FF",
+    "description": "Good for newcomers"
+  },
+  {
+    "name": "help wanted",
+    "color": "008672",
+    "description": "Extra attention is needed"
+  },
+  {
+    "name": "wontfix",
+    "color": "FFFFFF",
+    "description": "This will not be worked on"
+  },
+  {
+    "name": "duplicate",
+    "color": "CFD3D7",
+    "description": "This issue or pull request already exists"
+  },
+  {
+    "name": "size/XS",
+    "color": "3CBF00",
+    "description": "Extra small PR (<50 lines)"
+  },
+  {
+    "name": "size/S",
+    "color": "5D9801",
+    "description": "Small PR (50-200 lines)"
+  },
+  {
+    "name": "size/M",
+    "color": "7F7203",
+    "description": "Medium PR (200-500 lines)"
+  },
+  {
+    "name": "size/L",
+    "color": "A14C05",
+    "description": "Large PR (500-1000 lines)"
+  },
+  {
+    "name": "size/XL",
+    "color": "C32607",
+    "description": "Extra large PR (>1000 lines)"
+  },
+  {
+    "name": "priority/critical",
+    "color": "FF0000",
+    "description": "Critical priority"
+  },
+  {
+    "name": "priority/high",
+    "color": "FF6B6B",
+    "description": "High priority"
+  },
+  {
+    "name": "priority/medium",
+    "color": "FFD93D",
+    "description": "Medium priority"
+  },
+  {
+    "name": "priority/low",
+    "color": "6BCF7F",
+    "description": "Low priority"
+  }
+]

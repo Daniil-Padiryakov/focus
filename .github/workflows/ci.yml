@@ -1,0 +1,290 @@
+# ================================
+# Main CI Pipeline
+# ================================
+# Triggers: Push, Pull Request
+# Features: Monorepo change detection, matrix builds, caching
+
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ================================
+  # Job 1: Detect Changes
+  # ================================
+  detect-changes:
+    name: Detect changed packages
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.changes.outputs.backend }}
+      frontend: ${{ steps.changes.outputs.frontend }}
+      shared: ${{ steps.changes.outputs.shared }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detect changed files
+        uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          filters: |
+            backend:
+              - 'apps/backend/**'
+              - 'packages/shared/**'
+              - 'pnpm-lock.yaml'
+            frontend:
+              - 'apps/frontend/**'
+              - 'packages/shared/**'
+              - 'pnpm-lock.yaml'
+            shared:
+              - 'packages/shared/**'
+            config:
+              - '.github/workflows/**'
+              - 'package.json'
+              - 'pnpm-workspace.yaml'
+              - 'tsconfig.base.json'
+              - '.eslintrc.json'
+              - '.prettierrc.json'
+
+  # ================================
+  # Job 2: Backend CI
+  # ================================
+  backend:
+    name: Backend CI
+    needs: detect-changes
+    if: needs.detect-changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:14-alpine
+        env:
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install pnpm globally
+        run: npm install -g pnpm@10.18.3
+
+      - name: Verify pnpm
+        run: pnpm -v
+
+      - name: Setup pnpm store cache
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+        shell: bash
+
+      - uses: actions/cache@v3
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run ESLint
+        run: pnpm --filter @focus/backend lint
+
+      - name: TypeScript check
+        run: pnpm --filter @focus/backend exec tsc --noEmit
+
+      - name: Unit tests
+        run: pnpm --filter @focus/backend test:cov
+        env:
+          NODE_ENV: test
+
+      - name: Build backend
+        run: pnpm --filter @focus/backend build
+
+      - name: Verify database connection
+        run: |
+          PGPASSWORD=test_password psql -h localhost -U test_user -d test_db -c "SELECT version();"
+          echo "✅ Database connection successful"
+
+      - name: Run database migrations
+        run: pnpm --filter @focus/backend migration:run
+        env:
+          NODE_ENV: test
+          DATABASE_HOST: localhost
+          DATABASE_PORT: 5432
+          DATABASE_USER: test_user
+          DATABASE_PASSWORD: test_password
+          DATABASE_NAME: test_db
+
+      - name: Integration tests
+        run: pnpm --filter @focus/backend test:e2e
+        env:
+          NODE_ENV: test
+          DATABASE_HOST: localhost
+          DATABASE_PORT: 5432
+          DATABASE_USER: test_user
+          DATABASE_PASSWORD: test_password
+          DATABASE_NAME: test_db
+          JWT_SECRET: test-secret-for-ci-minimum-32-characters-long
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./apps/backend/coverage/lcov.info
+          flags: backend
+          name: backend-coverage
+        continue-on-error: true
+
+  # ================================
+  # Job 3: Frontend CI
+  # ================================
+  frontend:
+    name: Frontend CI
+    needs: detect-changes
+    if: needs.detect-changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install pnpm globally
+        run: npm install -g pnpm@10.18.3
+
+      - name: Verify pnpm
+        run: pnpm -v
+
+      - name: Setup pnpm store cache
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+        shell: bash
+
+      - uses: actions/cache@v3
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run ESLint
+        run: pnpm --filter @focus/frontend lint
+
+      - name: TypeScript check
+        run: pnpm --filter @focus/frontend exec tsc --noEmit
+
+      - name: Run tests
+        run: pnpm --filter @focus/frontend test
+        continue-on-error: true
+
+      - name: Build frontend
+        run: pnpm --filter @focus/frontend build
+        env:
+          VITE_API_URL: http://localhost:3000
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: apps/frontend/dist/
+          retention-days: 7
+
+  # ================================
+  # Job 4: Shared Package CI
+  # ================================
+  shared:
+    name: Shared Package CI
+    needs: detect-changes
+    if: needs.detect-changes.outputs.shared == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install pnpm globally
+        run: npm install -g pnpm@10.18.3
+
+      - name: Verify pnpm
+        run: pnpm -v
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: TypeScript check
+        run: pnpm --filter @focus/shared exec tsc --noEmit
+
+      - name: Build shared package
+        run: pnpm --filter @focus/shared build
+
+  # ================================
+  # Job 5: CI Status Check
+  # ================================
+  ci-status:
+    name: CI Status
+    runs-on: ubuntu-latest
+    needs: [detect-changes, backend, frontend, shared]
+    if: always()
+
+    steps:
+      - name: Check CI status
+        run: |
+          echo "Changes detected:"
+          echo "  Backend: ${{ needs.detect-changes.outputs.backend }}"
+          echo "  Frontend: ${{ needs.detect-changes.outputs.frontend }}"
+          echo "  Shared: ${{ needs.detect-changes.outputs.shared }}"
+          echo ""
+          echo "Job statuses:"
+          echo "  Backend: ${{ needs.backend.result }}"
+          echo "  Frontend: ${{ needs.frontend.result }}"
+          echo "  Shared: ${{ needs.shared.result }}"
+          echo ""
+
+          if [[ "${{ needs.backend.result }}" == "failure" ]] || \
+             [[ "${{ needs.frontend.result }}" == "failure" ]] || \
+             [[ "${{ needs.shared.result }}" == "failure" ]]; then
+            echo "❌ CI failed"
+            exit 1
+          fi
+
+          if [[ "${{ needs.detect-changes.outputs.backend }}" == "true" && "${{ needs.backend.result }}" == "skipped" ]] || \
+             [[ "${{ needs.detect-changes.outputs.frontend }}" == "true" && "${{ needs.frontend.result }}" == "skipped" ]] || \
+             [[ "${{ needs.detect-changes.outputs.shared }}" == "true" && "${{ needs.shared.result }}" == "skipped" ]]; then
+            echo "❌ Required job was skipped"
+            exit 1
+          fi
+
+          echo "✅ All CI checks passed"
