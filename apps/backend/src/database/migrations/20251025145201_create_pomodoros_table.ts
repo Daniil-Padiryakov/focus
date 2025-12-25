@@ -3,7 +3,7 @@ import { Knex } from 'knex';
 /**
  * Migration: Create pomodoros table
  *
- * Created: 2024-05-18
+ * Created: 2025-10-25
  *
  * Description:
  * - Pomodoro sessions tracking
@@ -80,7 +80,7 @@ export async function up(knex: Knex): Promise<void> {
     // ================================
     // Indexes
     // ================================
-    // Foreign key index (автоматически создаётся, но explicit)
+    // Foreign key index (автоматически создаётся, но явно)
     table.index('user_id', 'idx_pomodoros_user_id');
 
     // Composite index для queries "user's pomodoros on date"

@@ -29,12 +29,10 @@ export async function seed(knex: Knex): Promise<void> {
     {
       email: 'demo@example.com',
       password_hash: passwordHash,
-      last_login_at: knex.fn.now(),
     },
     {
       email: 'admin@example.com',
       password_hash: passwordHash,
-      last_login_at: null, // Never logged in yet
     },
   ]);
 

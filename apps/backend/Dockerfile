@@ -34,6 +34,9 @@ FROM base AS dependencies
 # Copy workspace configuration first (для лучшего кеширования)
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
 
+# Copy root TypeScript config
+COPY tsconfig.base.json ./
+
 # Copy package.json files (только метаданные, не код)
 COPY packages/shared/package.json ./packages/shared/
 COPY apps/backend/package.json ./apps/backend/

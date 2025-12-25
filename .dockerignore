@@ -85,7 +85,7 @@ Thumbs.db
 .editorconfig
 .eslintrc*
 .prettierrc*
-tsconfig*.json
+tsconfig.tsbuildinfo
 jest.config.*
 *.config.js
 *.config.ts
