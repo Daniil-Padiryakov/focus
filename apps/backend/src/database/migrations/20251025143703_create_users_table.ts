@@ -50,11 +50,6 @@ export async function up(knex: Knex): Promise<void> {
       .defaultTo(knex.fn.now())
       .comment('Updated timestamp (UTC)');
 
-    table
-      .timestamp('last_login_at', { useTz: true })
-      .nullable()
-      .comment('Last login timestamp');
-
     // Soft delete
     table
       .timestamp('deleted_at', { useTz: true })
@@ -66,17 +61,11 @@ export async function up(knex: Knex): Promise<void> {
     // ================================
     // Unique index на email уже создан через .unique()
 
-    // Index для query по created_at (например, "new users this month")
-    table.index('created_at', 'idx_users_created_at');
-
     // Partial index отдельно через raw SQL
     await knex.raw(`
             CREATE INDEX idx_users_active
                 ON users (deleted_at) WHERE deleted_at IS NULL
         `);
-
-    // Index для last_login_at (для analytics)
-    table.index('last_login_at', 'idx_users_last_login');
   });
 
   // ================================

@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ConfigService } from './config/config.service';
 import { Logger } from 'nestjs-pino';
+import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -14,11 +15,6 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
   const logger = app.get(Logger);
 
-  console.log('configService', configService.isDevelopment);
-  console.log('configService', configService.logLevel);
-  console.log('configService', configService.logPretty);
-  console.log('configService', configService.logPretty);
-
   // CORS
   app.enableCors({
     origin: configService.corsOrigin,
@@ -30,6 +26,8 @@ async function bootstrap() {
 
   // Graceful shutdown
   app.enableShutdownHooks();
+
+  app.useGlobalPipes(new ValidationPipe());
 
   const port = configService.port;
   await app.listen(port);

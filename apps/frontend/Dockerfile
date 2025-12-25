@@ -28,6 +28,9 @@ FROM base AS dependencies
 # Copy workspace configuration (для кеширования)
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
 
+# Copy root TypeScript config
+COPY tsconfig.base.json ./
+
 # Copy package.json files
 COPY packages/shared/package.json ./packages/shared/
 COPY apps/frontend/package.json ./apps/frontend/

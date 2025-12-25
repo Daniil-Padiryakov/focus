@@ -33,6 +33,7 @@ services:
       - ./apps/backend/test:/app/apps/backend/test:cached
 
       # Configuration files
+      - ./apps/backend/package.json:/app/apps/backend/package.json:ro
       - ./apps/backend/tsconfig.json:/app/apps/backend/tsconfig.json:ro
       - ./apps/backend/tsconfig.build.json:/app/apps/backend/tsconfig.build.json:ro
       - ./apps/backend/nest-cli.json:/app/apps/backend/nest-cli.json:ro

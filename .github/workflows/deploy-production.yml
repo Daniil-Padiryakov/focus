@@ -10,7 +10,7 @@ on:
   push:
     branches:
       - main
-  workflow_dispatch:  # Manual trigger with approval
+  workflow_dispatch: # Manual trigger with approval
 
 # Require approval before production deploy
 environment:
@@ -57,11 +57,11 @@ jobs:
         run: |
           ssh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'ENDSSH'
             cd ~/myapp
-          
+
             # Create backup
             timestamp=$(date +%Y%m%d_%H%M%S)
-            docker compose exec -T postgres pg_dump -U postgres myapp_prod | gzip > backups/backup_$timestamp.sql.gz
-          
+            docker compose exec -T postgres pg_dump -U postgres focus_prod | gzip > backups/backup_$timestamp.sql.gz
+
             echo "✅ Backup created: backup_$timestamp.sql.gz"
           ENDSSH
 
@@ -77,14 +77,14 @@ jobs:
         run: |
           ssh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'ENDSSH'
             cd ~/myapp
-          
+
             # Login to registry
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-          
+
             # Pull specific commit images
             docker pull ghcr.io/${{ github.repository }}/backend:main-${{ github.sha }}
             docker pull ghcr.io/${{ github.repository }}/frontend:main-${{ github.sha }}
-          
+
             # Tag as main
             docker tag ghcr.io/${{ github.repository }}/backend:main-${{ github.sha }} \
                        ghcr.io/${{ github.repository }}/backend:main
@@ -96,19 +96,19 @@ jobs:
         run: |
           ssh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'ENDSSH'
             cd ~/myapp
-          
+
             export BACKEND_IMAGE=ghcr.io/${{ github.repository }}/backend:main
             export FRONTEND_IMAGE=ghcr.io/${{ github.repository }}/frontend:main
-            export DATABASE_NAME=myapp_prod
-          
+            export DATABASE_NAME=focus_prod
+
             # Rolling update
             echo "🚀 Starting rolling update..."
             docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --no-deps --remove-orphans
-          
+
             # Monitor rollout
             echo "⏳ Monitoring rollout..."
             sleep 60  # Wait for update_config.monitor duration
-          
+
             # Verify all healthy
             docker compose -f docker-compose.yml -f docker-compose.prod.yml ps
           ENDSSH
@@ -126,7 +126,7 @@ jobs:
       - name: Comprehensive health checks
         run: |
           echo "Running health checks..."
-          
+
           # Check backend health
           for i in {1..5}; do
             if curl -f https://api.yourdomain.com/health; then
@@ -137,7 +137,7 @@ jobs:
             fi
             sleep 5
           done
-          
+
           # Check frontend
           if curl -f https://yourdomain.com; then
             echo "✅ Frontend is accessible"
@@ -145,7 +145,7 @@ jobs:
             echo "❌ Frontend is not accessible"
             exit 1
           fi
-          
+
           echo "✅ All health checks passed"
 
       # ================================
@@ -155,13 +155,13 @@ jobs:
         if: failure()
         run: |
           echo "❌ Deployment failed, rolling back..."
-          
+
           ssh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'ENDSSH'
             cd ~/myapp
-          
+
             # Rollback to previous version
             docker compose -f docker-compose.yml -f docker-compose.prod.yml rollback
-          
+
             echo "✅ Rollback completed"
           ENDSSH
 
@@ -175,13 +175,13 @@ jobs:
           status: ${{ job.status }}
           text: |
             🚀 Production Deployment: ${{ job.status }}
-            
+
             Commit: ${{ github.sha }}
             Author: ${{ github.actor }}
             Message: ${{ github.event.head_commit.message }}
-            
+
             URL: https://yourdomain.com
-            
+
             ${{ job.status == 'success' && '✅ Deployment successful!' || '❌ Deployment failed - rollback initiated' }}
           webhook_url: ${{ secrets.SLACK_WEBHOOK }}
         continue-on-error: true
@@ -195,7 +195,7 @@ jobs:
           ssh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'ENDSSH'
             # Keep last 3 versions
             docker images | grep ghcr.io | tail -n +4 | awk '{print $3}' | xargs -r docker rmi
-          
+
             # Prune dangling
             docker image prune -f
           ENDSSH

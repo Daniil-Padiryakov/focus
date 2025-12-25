@@ -3,7 +3,7 @@ import { Knex } from 'knex';
 /**
  * Migration: Add data integrity constraints
  *
- * Created: 2024-05-18
+ * Created: 2025-10-25
  *
  * Description:
  * - Additional CHECK constraints для data validation

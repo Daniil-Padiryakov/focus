@@ -47,6 +47,8 @@
     "@nestjs/platform-express": "^11.0.1",
     "@types/pg": "^8.15.5",
     "bcrypt": "^6.0.0",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.3",
     "dotenv": "^17.2.3",
     "joi": "^18.0.1",
     "knex": "^3.1.0",

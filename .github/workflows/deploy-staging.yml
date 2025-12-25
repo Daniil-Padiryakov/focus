@@ -10,7 +10,7 @@ on:
   push:
     branches:
       - develop
-  workflow_dispatch:  # Manual trigger
+  workflow_dispatch: # Manual trigger
 
 # Environment protection rules
 environment:
@@ -60,10 +60,10 @@ jobs:
         run: |
           ssh ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'ENDSSH'
             cd ~/myapp
-          
+
             # Login to GitHub Container Registry
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-          
+
             # Pull images
             docker pull ghcr.io/${{ github.repository }}/backend:develop
             docker pull ghcr.io/${{ github.repository }}/frontend:develop
@@ -73,19 +73,19 @@ jobs:
         run: |
           ssh ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'ENDSSH'
             cd ~/myapp
-          
+
             # Set environment variables
             export BACKEND_IMAGE=ghcr.io/${{ github.repository }}/backend:develop
             export FRONTEND_IMAGE=ghcr.io/${{ github.repository }}/frontend:develop
-            export DATABASE_NAME=myapp_staging
-          
+            export DATABASE_NAME=focus_staging
+
             # Deploy with zero-downtime
             docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --remove-orphans
-          
+
             # Wait for services to be healthy
             echo "Waiting for services to be healthy..."
             sleep 10
-          
+
             # Check health
             docker compose -f docker-compose.yml -f docker-compose.prod.yml ps
           ENDSSH
@@ -105,18 +105,18 @@ jobs:
           # Wait for health endpoint
           max_attempts=30
           attempt=0
-          
+
           while [ $attempt -lt $max_attempts ]; do
             if curl -f https://staging-api.yourdomain.com/health; then
               echo "✅ Health check passed"
               exit 0
             fi
-          
+
             echo "⏳ Waiting for health check (attempt $((attempt + 1))/$max_attempts)..."
             sleep 10
             attempt=$((attempt + 1))
           done
-          
+
           echo "❌ Health check failed"
           exit 1
 
