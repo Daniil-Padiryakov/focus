@@ -97,7 +97,7 @@ jobs:
         run: |
           ssh ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'ENDSSH'
             cd ~/myapp
-            docker compose exec -T backend pnpm --filter @my-app/backend migration:run
+            docker compose exec -T backend pnpm --filter @focus/backend db:migrate
           ENDSSH
 
       - name: Health check

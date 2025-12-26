@@ -46,7 +46,7 @@ services:
   # Backend (Production)
   # ================================
   backend:
-    image: ${BACKEND_IMAGE:-ghcr.io/username/myapp/backend:main}
+    image: ${BACKEND_IMAGE:-ghcr.io/daniil-padiryakov/focus/backend:main}
     restart: unless-stopped
 
     depends_on:
@@ -89,23 +89,6 @@ services:
       - backend
       - frontend
 
-    # Deployment config
-    deploy:
-      replicas: 2
-      update_config:
-        parallelism: 1
-        delay: 10s
-        order: start-first
-        failure_action: rollback
-        monitor: 60s
-      rollback_config:
-        parallelism: 0
-        order: stop-first
-      restart_policy:
-        condition: on-failure
-        delay: 5s
-        max_attempts: 3
-
     logging:
       driver: 'json-file'
       options:
@@ -116,7 +99,7 @@ services:
   # Frontend (Production)
   # ================================
   frontend:
-    image: ${FRONTEND_IMAGE:-ghcr.io/username/myapp/frontend:main}
+    image: ${FRONTEND_IMAGE:-ghcr.io/daniil-padiryakov/focus/frontend:main}
     restart: unless-stopped
 
     depends_on:
@@ -128,7 +111,7 @@ services:
       - '443:443'
 
     healthcheck:
-      test: ['CMD', 'wget', '--quiet', '--tries=1', '--spider', 'http://localhost/']
+      test: ['CMD', 'curl', '-f', 'http://localhost/']
       interval: 30s
       timeout: 3s
       retries: 3
@@ -136,17 +119,6 @@ services:
 
     networks:
       - frontend
-
-    deploy:
-      replicas: 2
-      update_config:
-        parallelism: 1
-        delay: 10s
-        order: start-first
-        failure_action: rollback
-      rollback_config:
-        parallelism: 0
-        order: stop-first
 
     logging:
       driver: 'json-file'

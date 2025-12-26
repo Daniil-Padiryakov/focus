@@ -1,0 +1,217 @@
+# ================================
+# Deploy to Kubernetes (Production)
+# ================================
+# Triggers: Push to main branch (requires approval)
+# Target: Kubernetes production cluster
+
+name: Deploy to K8s Production
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_TAG: main
+
+jobs:
+  deploy:
+    name: Deploy to Production Cluster
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    environment:
+      name: production
+      url: https://focus.yourdomain.com
+
+    steps:
+      # ================================
+      # Checkout
+      # ================================
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # ================================
+      # Pre-deployment checks
+      # ================================
+      - name: Verify images exist
+        run: |
+          docker manifest inspect ${{ env.REGISTRY }}/${{ github.repository }}/backend:${{ env.IMAGE_TAG }}-${{ github.sha }}
+          docker manifest inspect ${{ env.REGISTRY }}/${{ github.repository }}/frontend:${{ env.IMAGE_TAG }}-${{ github.sha }}
+
+      # ================================
+      # Setup Kubernetes
+      # ================================
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: 'v1.28.0'
+
+      - name: Configure kubeconfig
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.PRODUCTION_KUBECONFIG }}" | base64 -d > ~/.kube/config
+          chmod 600 ~/.kube/config
+
+      - name: Verify cluster access
+        run: |
+          kubectl cluster-info
+          kubectl get nodes
+
+      # ================================
+      # Backup
+      # ================================
+      - name: Create database backup
+        run: |
+          # Get postgres pod
+          POSTGRES_POD=$(kubectl get pod -n focus -l app=postgres -o jsonpath='{.items[0].metadata.name}')
+
+          # Create backup
+          timestamp=$(date +%Y%m%d_%H%M%S)
+          kubectl exec -n focus $POSTGRES_POD -- pg_dump -U postgres focus_prod | gzip > backup_$timestamp.sql.gz
+
+          echo "✅ Backup created: backup_$timestamp.sql.gz"
+
+          # Upload to artifacts (optional: upload to S3/GCS instead)
+          mkdir -p backups
+          mv backup_$timestamp.sql.gz backups/
+
+      - name: Upload backup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: db-backup-${{ github.sha }}
+          path: backups/
+          retention-days: 7
+
+      # ================================
+      # Deploy
+      # ================================
+      - name: Update backend image
+        run: |
+          # Tag previous version for rollback
+          kubectl set image deployment/backend \
+            backend=${{ env.REGISTRY }}/${{ github.repository }}/backend:${{ env.IMAGE_TAG }}-previous \
+            -n focus --record || true
+
+          # Deploy new version
+          kubectl set image deployment/backend \
+            backend=${{ env.REGISTRY }}/${{ github.repository }}/backend:${{ env.IMAGE_TAG }}-${{ github.sha }} \
+            -n focus --record
+
+      - name: Update frontend image
+        run: |
+          kubectl set image deployment/frontend \
+            frontend=${{ env.REGISTRY }}/${{ github.repository }}/frontend:${{ env.IMAGE_TAG }}-${{ github.sha }} \
+            -n focus --record
+
+      # ================================
+      # Wait for rollout
+      # ================================
+      - name: Monitor backend rollout
+        run: |
+          echo "⏳ Monitoring backend rollout..."
+          kubectl rollout status deployment/backend -n focus --timeout=5m
+
+      - name: Monitor frontend rollout
+        run: |
+          echo "⏳ Monitoring frontend rollout..."
+          kubectl rollout status deployment/frontend -n focus --timeout=3m
+
+      # ================================
+      # Post-deployment
+      # ================================
+      - name: Run database migrations
+        run: |
+          # Wait for backend to be ready
+          kubectl wait --for=condition=ready pod -l app=backend -n focus --timeout=120s
+
+          # Get backend pod
+          BACKEND_POD=$(kubectl get pod -n focus -l app=backend -o jsonpath='{.items[0].metadata.name}')
+
+          # Run migrations
+          kubectl exec -n focus $BACKEND_POD -- pnpm --filter @focus/backend db:migrate
+
+      - name: Comprehensive health checks
+        run: |
+          echo "Running health checks..."
+
+          # Check all pods are ready
+          kubectl wait --for=condition=ready pod -l app=backend -n focus --timeout=60s
+          kubectl wait --for=condition=ready pod -l app=frontend -n focus --timeout=60s
+          kubectl wait --for=condition=ready pod -l app=postgres -n focus --timeout=60s
+
+          # Test backend health endpoint (via port-forward)
+          kubectl port-forward -n focus svc/backend 3000:3000 &
+          PF_PID=$!
+          sleep 5
+
+          for i in {1..5}; do
+            if curl -f http://localhost:3000/health; then
+              echo "✅ Backend health check $i/5 passed"
+            else
+              echo "❌ Backend health check $i/5 failed"
+              kill $PF_PID
+              exit 1
+            fi
+            sleep 5
+          done
+
+          kill $PF_PID
+          echo "✅ All health checks passed"
+
+      - name: Verify deployment
+        run: |
+          echo "📊 Deployment status:"
+          kubectl get pods -n focus -o wide
+          kubectl get svc -n focus
+          kubectl get ingress -n focus
+
+      # ================================
+      # Rollback on failure
+      # ================================
+      - name: Rollback on failure
+        if: failure()
+        run: |
+          echo "❌ Deployment failed, rolling back..."
+
+          # Rollback backend to previous revision
+          kubectl rollout undo deployment/backend -n focus
+
+          # Rollback frontend to previous revision
+          kubectl rollout undo deployment/frontend -n focus
+
+          # Wait for rollback to complete
+          kubectl rollout status deployment/backend -n focus --timeout=5m
+          kubectl rollout status deployment/frontend -n focus --timeout=3m
+
+          echo "✅ Rollback completed"
+
+      # ================================
+      # Notifications
+      # ================================
+      - name: Notify team
+        if: always()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: |
+            🚀 Production K8s Deployment: ${{ job.status }}
+
+            Commit: ${{ github.sha }}
+            Author: ${{ github.actor }}
+            Message: ${{ github.event.head_commit.message }}
+
+            ${{ job.status == 'success' && '✅ Deployment successful!' || '❌ Deployment failed - rollback initiated' }}
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+        continue-on-error: true
+
+      # ================================
+      # Cleanup
+      # ================================
+      - name: Cleanup old images
+        if: success()
+        run: |
+          echo "Cleanup completed via image retention policies"
+          # Note: Configure image retention in GHCR settings

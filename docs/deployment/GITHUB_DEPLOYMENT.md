@@ -7,6 +7,7 @@
 ### Для Staging
 
 `Settings → Secrets and variables → Actions → New repository secret`
+
 ```
 STAGING_SSH_KEY       - Private SSH key для staging сервера
 STAGING_HOST          - staging.yourdomain.com
@@ -18,6 +19,7 @@ SLACK_WEBHOOK         - Slack webhook URL (optional)
 ```
 
 ### Для Production
+
 ```
 PRODUCTION_SSH_KEY    - Private SSH key для production сервера
 PRODUCTION_HOST       - yourdomain.com
@@ -28,6 +30,7 @@ REFRESH_SECRET        - Production refresh token secret
 ```
 
 ## SSH Key Generation
+
 ```bash
 # Generate SSH key pair
 ssh-keygen -t ed25519 -C "github-actions@deploy" -f ~/.ssh/github_deploy
@@ -43,6 +46,7 @@ cat ~/.ssh/github_deploy
 ## Deployment Workflow
 
 ### Staging
+
 ```bash
 # Автоматически при push в develop
 git push origin develop
@@ -52,6 +56,7 @@ git push origin develop
 ```
 
 ### Production
+
 ```bash
 # Merge develop → main (через PR)
 # Deployment начнётся автоматически
@@ -70,10 +75,12 @@ git push origin develop
 `Settings → Environments`
 
 **Staging:**
+
 - Deployment branches: `develop`
 - No approval required (auto-deploy)
 
 **Production:**
+
 - Deployment branches: `main`
 - Required reviewers: 1+ (manual approval)
 - Wait timer: 5 minutes (cooling period)
@@ -83,11 +90,13 @@ git push origin develop
 ### Automatic Rollback
 
 Deployment автоматически откатится если:
+
 - Health check fails
 - Container exits
 - Мониторинг обнаружил проблемы
 
 ### Manual Rollback
+
 ```bash
 # SSH к серверу
 ssh deploy@yourdomain.com
@@ -102,6 +111,7 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 ## Мониторинг Deployment
 
 ### Проверка статуса
+
 ```bash
 # View logs
 docker compose logs -f backend frontend
@@ -119,6 +129,7 @@ curl https://api.yourdomain.com/health
 ### Slack Notifications
 
 Deployments отправляют уведомления в Slack:
+
 - ✅ Success: Зелёное сообщение с деталями deployment
 - ❌ Failure: Красное сообщение с ошибкой
 - 🔄 Rollback: Жёлтое сообщение с подтверждением rollback
@@ -126,6 +137,7 @@ Deployments отправляют уведомления в Slack:
 ## Troubleshooting
 
 ### Deployment Stuck
+
 ```bash
 # Check container status
 docker compose ps
@@ -138,6 +150,7 @@ docker compose up -d --force-recreate
 ```
 
 ### Health Check Failing
+
 ```bash
 # Проверь health endpoint напрямую
 docker compose exec backend curl http://localhost:3000/health
@@ -150,6 +163,7 @@ docker compose exec backend pnpm --filter @focus/backend run migration:status
 ```
 
 ### Rollback Failed
+
 ```bash
 # Manual recovery:
 
@@ -163,4 +177,3 @@ docker pull ghcr.io/username/focus/backend:previous-tag
 export BACKEND_IMAGE=ghcr.io/username/focus/backend:previous-tag
 docker compose up -d
 ```
-

@@ -120,7 +120,7 @@ jobs:
         run: |
           ssh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'ENDSSH'
             cd ~/myapp
-            docker compose exec -T backend pnpm --filter @my-app/backend migration:run
+            docker compose exec -T backend pnpm --filter @focus/backend db:migrate
           ENDSSH
 
       - name: Comprehensive health checks
@@ -159,8 +159,23 @@ jobs:
           ssh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'ENDSSH'
             cd ~/myapp
 
-            # Rollback to previous version
-            docker compose -f docker-compose.yml -f docker-compose.prod.yml rollback
+            # Stop failed deployment
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml down
+
+            # Pull previous tagged images (assumed to be working)
+            docker pull ghcr.io/${{ github.repository }}/backend:main-previous
+            docker pull ghcr.io/${{ github.repository }}/frontend:main-previous
+
+            # Tag as main and restart
+            docker tag ghcr.io/${{ github.repository }}/backend:main-previous \
+                       ghcr.io/${{ github.repository }}/backend:main
+            docker tag ghcr.io/${{ github.repository }}/frontend:main-previous \
+                       ghcr.io/${{ github.repository }}/frontend:main
+
+            # Start with previous version
+            export BACKEND_IMAGE=ghcr.io/${{ github.repository }}/backend:main
+            export FRONTEND_IMAGE=ghcr.io/${{ github.repository }}/frontend:main
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 
             echo "✅ Rollback completed"
           ENDSSH

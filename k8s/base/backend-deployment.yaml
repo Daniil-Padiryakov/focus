@@ -1,0 +1,128 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: focus
+  labels:
+    app: backend
+    component: api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+        component: api
+    spec:
+      initContainers:
+        # Run migrations before starting the app
+        - name: run-migrations
+          image: ghcr.io/daniil-padiryakov/focus/backend:develop
+          command: ['pnpm', '--filter', '@focus/backend', 'db:migrate']
+          env:
+            - name: NODE_ENV
+              value: 'production'
+            - name: DATABASE_HOST
+              value: 'postgres'
+            - name: DATABASE_PORT
+              value: '5432'
+            - name: DATABASE_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: database_name
+            - name: DATABASE_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: username
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: password
+      containers:
+        - name: backend
+          image: ghcr.io/daniil-padiryakov/focus/backend:develop
+          ports:
+            - containerPort: 3000
+              name: http
+          env:
+            - name: NODE_ENV
+              value: 'production'
+            - name: PORT
+              value: '3000'
+            - name: DATABASE_HOST
+              value: 'postgres'
+            - name: DATABASE_PORT
+              value: '5432'
+            - name: DATABASE_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: database_name
+            - name: DATABASE_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: username
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: password
+            - name: DATABASE_POOL_MIN
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: database_pool_min
+            - name: DATABASE_POOL_MAX
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: database_pool_max
+            - name: DATABASE_SSL
+              value: 'false'
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: app-secret
+                  key: jwt_secret
+            - name: JWT_EXPIRES_IN
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: jwt_expires_in
+            - name: CORS_ORIGIN
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: cors_origin
+            - name: LOG_LEVEL
+              value: 'info'
+            - name: LOG_PRETTY
+              value: 'false'
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+          resources:
+            requests:
+              memory: '256Mi'
+              cpu: '250m'
+            limits:
+              memory: '512Mi'
+              cpu: '500m'
