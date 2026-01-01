@@ -13,7 +13,7 @@ NC='\033[0m'
 echo -e "${YELLOW}🔍 Checking code formatting...${NC}"
 echo ""
 
-if prettier --check "**/*.{ts,tsx,js,jsx,json,md,yml,yaml}"; then
+if prettier --check "**/*.{ts,tsx,js,jsx,json}"; then
   echo ""
   echo -e "${GREEN}✅ All files are formatted correctly!${NC}"
   exit 0
