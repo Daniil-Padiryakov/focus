@@ -58,9 +58,9 @@ jobs:
         run: |
           echo "🚀 Deploying to QA cluster..."
 
-          # Apply all manifests (creates or updates resources)
-          # This will automatically create namespace, configmaps, secrets, deployments
-          kubectl apply -f k8s/base/
+          # Apply manifests using Kustomize
+          # -k flag uses kustomization.yaml to manage resources
+          kubectl apply -k k8s/base/
 
           echo "✅ Manifests applied"
 
