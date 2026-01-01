@@ -344,7 +344,6 @@ Deployment is successful when:
 
 - [DEPLOYMENT.md](./DEPLOYMENT.md) - Complete deployment guide
 - [k8s/README.md](./k8s/README.md) - Kubernetes deployment
-- [FIXES.md](./FIXES.md) - CI/CD fixes documentation
 - [CLAUDE.md](./CLAUDE.md) - Development guidelines
 
 ---

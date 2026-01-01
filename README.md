@@ -58,6 +58,11 @@ pnpm lint:fix
 
 ## Documentation
 
+### 🚀 First Time Setup
+
+- **[docs/deployment/GETTING_STARTED.md](./docs/deployment/GETTING_STARTED.md)** - **START HERE!**
+  Complete guide from zero to production
+
 ### For Developers
 
 - **[CLAUDE.md](./CLAUDE.md)** - Development guidelines and project overview
@@ -70,9 +75,10 @@ pnpm lint:fix
 
 ### For Deployment
 
-- **[docs/deployment/DEPLOYMENT.md](./docs/deployment/DEPLOYMENT.md)** - Complete deployment guide
+- **[docs/deployment/DEPLOYMENT.md](./docs/deployment/DEPLOYMENT.md)** - Complete deployment
+  reference
 - **[docs/deployment/CHECKLIST.md](./docs/deployment/CHECKLIST.md)** - Pre-deployment checklist
-- **[k8s/README.md](./k8s/README.md)** - Kubernetes deployment instructions
+- **[k8s/README.md](./k8s/README.md)** - Kubernetes manifests documentation
 
 ### Reference
 

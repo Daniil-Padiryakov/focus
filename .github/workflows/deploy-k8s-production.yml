@@ -24,7 +24,7 @@ jobs:
 
     environment:
       name: production
-      url: https://focus.yourdomain.com
+      url: https://focus-app.ru
 
     steps:
       # ================================

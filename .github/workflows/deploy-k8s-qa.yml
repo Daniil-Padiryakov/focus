@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: qa
-      url: https://qa.focus.yourdomain.com
+      url: https://qa.focus-app.ru
 
     steps:
       # ================================
@@ -136,6 +136,6 @@ jobs:
             Branch: ${{ github.ref_name }}
             Commit: ${{ github.sha }}
             Author: ${{ github.actor }}
-            URL: https://qa.focus.yourdomain.com
+            URL: https://qa.focus-app.ru
           webhook_url: ${{ secrets.SLACK_WEBHOOK }}
         continue-on-error: true
