@@ -38,8 +38,36 @@ jobs:
       # ================================
       - name: Verify images exist
         run: |
-          docker manifest inspect ${{ env.REGISTRY }}/${{ github.repository }}/backend:${{ env.IMAGE_TAG }}-${{ github.sha }}
-          docker manifest inspect ${{ env.REGISTRY }}/${{ github.repository }}/frontend:${{ env.IMAGE_TAG }}-${{ github.sha }}
+          echo "🔍 Verifying Docker images in registry..."
+
+          BACKEND_IMAGE="${{ env.REGISTRY }}/${{ github.repository }}/backend:${{ env.IMAGE_TAG }}"
+          FRONTEND_IMAGE="${{ env.REGISTRY }}/${{ github.repository }}/frontend:${{ env.IMAGE_TAG }}"
+
+          echo "Checking backend image: $BACKEND_IMAGE"
+          if docker manifest inspect $BACKEND_IMAGE > /dev/null 2>&1; then
+            echo "✅ Backend image exists"
+          else
+            echo "❌ Backend image NOT found: $BACKEND_IMAGE"
+            echo ""
+            echo "⚠️ This image needs to be built first!"
+            echo "Make sure the docker-build workflow has run successfully."
+            exit 1
+          fi
+
+          echo ""
+          echo "Checking frontend image: $FRONTEND_IMAGE"
+          if docker manifest inspect $FRONTEND_IMAGE > /dev/null 2>&1; then
+            echo "✅ Frontend image exists"
+          else
+            echo "❌ Frontend image NOT found: $FRONTEND_IMAGE"
+            echo ""
+            echo "⚠️ This image needs to be built first!"
+            echo "Make sure the docker-build workflow has run successfully."
+            exit 1
+          fi
+
+          echo ""
+          echo "✅ All required images exist in registry"
 
       # ================================
       # Setup Kubernetes
@@ -161,24 +189,90 @@ jobs:
           kubectl get ingress -n focus
 
       # ================================
+      # Debug on failure
+      # ================================
+      - name: Debug deployment failure
+        if: failure()
+        run: |
+          echo "🔍 Debugging deployment failure..."
+          echo ""
+
+          echo "📊 Pods status:"
+          kubectl get pods -n focus -o wide
+          echo ""
+
+          echo "📋 Backend deployment details:"
+          kubectl describe deployment backend -n focus || true
+          echo ""
+
+          echo "📋 Backend pods details:"
+          kubectl describe pods -n focus -l app=backend || true
+          echo ""
+
+          echo "📝 Backend pod logs (init container - migrations):"
+          BACKEND_POD=$(kubectl get pod -n focus -l app=backend -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
+          if [ ! -z "$BACKEND_POD" ]; then
+            echo "Init container logs:"
+            kubectl logs $BACKEND_POD -n focus -c run-migrations --tail=50 || echo "No init container logs"
+            echo ""
+            echo "Main container logs:"
+            kubectl logs $BACKEND_POD -n focus -c backend --tail=100 || echo "No main container logs yet"
+          else
+            echo "⚠️ No backend pod found"
+          fi
+          echo ""
+
+          echo "📋 Frontend pod logs:"
+          FRONTEND_POD=$(kubectl get pod -n focus -l app=frontend -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
+          if [ ! -z "$FRONTEND_POD" ]; then
+            kubectl logs $FRONTEND_POD -n focus --tail=50 || echo "No frontend logs"
+          fi
+          echo ""
+
+          echo "📋 Postgres pod logs:"
+          POSTGRES_POD=$(kubectl get pod -n focus -l app=postgres -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
+          if [ ! -z "$POSTGRES_POD" ]; then
+            kubectl logs $POSTGRES_POD -n focus --tail=50 || echo "No postgres logs"
+          fi
+          echo ""
+
+          echo "🎯 Recent events:"
+          kubectl get events -n focus --sort-by='.lastTimestamp' --field-selector type!=Normal | tail -30
+          echo ""
+
+          echo "🔗 Services and endpoints:"
+          kubectl get svc -n focus
+          kubectl get endpoints -n focus
+
+      # ================================
       # Rollback on failure
       # ================================
       - name: Rollback on failure
         if: failure()
         run: |
-          echo "❌ Deployment failed, rolling back..."
+          echo "❌ Deployment failed, attempting rollback..."
 
-          # Rollback backend to previous revision
-          kubectl rollout undo deployment/backend -n focus
+          # Check if rollout history exists for backend
+          if kubectl rollout history deployment/backend -n focus &>/dev/null; then
+            echo "📜 Backend rollout history found, rolling back..."
+            kubectl rollout undo deployment/backend -n focus
+            kubectl rollout status deployment/backend -n focus --timeout=5m || echo "⚠️ Backend rollback status unknown"
+          else
+            echo "⚠️ No rollout history for backend (first deployment?)"
+            echo "Deployment will remain in current state"
+          fi
 
-          # Rollback frontend to previous revision
-          kubectl rollout undo deployment/frontend -n focus
+          # Check if rollout history exists for frontend
+          if kubectl rollout history deployment/frontend -n focus &>/dev/null; then
+            echo "📜 Frontend rollout history found, rolling back..."
+            kubectl rollout undo deployment/frontend -n focus
+            kubectl rollout status deployment/frontend -n focus --timeout=3m || echo "⚠️ Frontend rollback status unknown"
+          else
+            echo "⚠️ No rollout history for frontend (first deployment?)"
+          fi
 
-          # Wait for rollback to complete
-          kubectl rollout status deployment/backend -n focus --timeout=5m
-          kubectl rollout status deployment/frontend -n focus --timeout=3m
-
-          echo "✅ Rollback completed"
+          echo ""
+          echo "ℹ️ Database backup available in artifacts for manual recovery if needed"
 
       # ================================
       # Cleanup
