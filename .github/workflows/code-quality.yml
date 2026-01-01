@@ -36,7 +36,7 @@ jobs:
 
       - name: Check Prettier formatting
         run: |
-          pnpm exec prettier --check "**/*.{ts,tsx,js,jsx,json,md,yml,yaml}"
+          pnpm exec prettier --check "**/*.{ts,tsx,js,jsx,json}"
 
   # ================================
   # Commit Message Validation

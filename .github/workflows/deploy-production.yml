@@ -13,14 +13,14 @@ on:
   workflow_dispatch: # Manual trigger with approval
 
 # Require approval before production deploy
-environment:
-  name: production
-  url: https://yourdomain.com
-
 jobs:
   deploy:
     name: Deploy to Production
     runs-on: ubuntu-latest
+
+    environment:
+      name: production
+      url: https://yourdomain.com
 
     # Add timeout для safety
     timeout-minutes: 15
