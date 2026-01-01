@@ -60,3 +60,11 @@ temp/
 secrets/
 *.secret
 *.key
+
+# Kubernetes secrets (local copies)
+k8s/base/secrets.local.yaml
+k8s/**/secrets.local.yaml
+
+# Database backups
+backups/
+*.sql.gz

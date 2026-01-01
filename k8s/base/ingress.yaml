@@ -1,0 +1,77 @@
+# ================================
+# Ingress (optional)
+# ================================
+# Requires Ingress Controller (nginx, traefik, etc.)
+#
+# For local development (Minikube):
+# minikube addons enable ingress
+#
+# Update host with your domain
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: focus-ingress
+  namespace: focus
+  labels:
+    app: focus
+  annotations:
+  # nginx.ingress.kubernetes.io/rewrite-target: /
+  # cert-manager.io/cluster-issuer: letsencrypt-prod  # For HTTPS
+spec:
+  ingressClassName: nginx
+  rules:
+    # Production Frontend
+    - host: focus-app.ru
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80
+
+    # Production Backend
+    - host: api.focus-app.ru
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 3000
+
+    # QA Frontend
+    - host: qa.focus-app.ru
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80
+
+    # QA Backend
+    - host: api.qa.focus-app.ru
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 3000
+
+  # Uncomment for HTTPS with cert-manager
+  # tls:
+  #   - hosts:
+  #       - focus.local
+  #       - api.focus.local
+  #     secretName: focus-tls-cert

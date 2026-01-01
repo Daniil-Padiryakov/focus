@@ -1,0 +1,141 @@
+# ================================
+# Deploy to Kubernetes (QA)
+# ================================
+# Triggers: Push to develop branch OR manual
+# Target: QA/Testing Kubernetes cluster
+# Purpose: Testing environment before production
+
+name: Deploy to K8s QA
+
+on:
+  push:
+    branches:
+      - develop
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_TAG: develop
+
+jobs:
+  deploy:
+    name: Deploy to QA Cluster
+    runs-on: ubuntu-latest
+    environment:
+      name: qa
+      url: https://qa.focus-app.ru
+
+    steps:
+      # ================================
+      # Checkout
+      # ================================
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # ================================
+      # Setup Kubernetes
+      # ================================
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: 'v1.28.0'
+
+      - name: Configure kubeconfig
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.QA_KUBECONFIG }}" | base64 -d > ~/.kube/config
+          chmod 600 ~/.kube/config
+
+      - name: Verify cluster access
+        run: |
+          kubectl cluster-info
+          kubectl get nodes
+
+      # ================================
+      # Update image tags
+      # ================================
+      - name: Update backend image
+        run: |
+          kubectl set image deployment/backend \
+            backend=${{ env.REGISTRY }}/${{ github.repository }}/backend:${{ env.IMAGE_TAG }} \
+            -n focus-qa
+
+      - name: Update frontend image
+        run: |
+          kubectl set image deployment/frontend \
+            frontend=${{ env.REGISTRY }}/${{ github.repository }}/frontend:${{ env.IMAGE_TAG }} \
+            -n focus-qa
+
+      # ================================
+      # Wait for rollout
+      # ================================
+      - name: Wait for backend rollout
+        run: |
+          kubectl rollout status deployment/backend -n focus-qa --timeout=5m
+
+      - name: Wait for frontend rollout
+        run: |
+          kubectl rollout status deployment/frontend -n focus-qa --timeout=3m
+
+      # ================================
+      # Run migrations
+      # ================================
+      - name: Run database migrations
+        run: |
+          # Get first backend pod
+          POD=$(kubectl get pod -n focus-qa -l app=backend -o jsonpath='{.items[0].metadata.name}')
+
+          # Run migrations
+          kubectl exec -n focus-qa $POD -- pnpm --filter @focus/backend db:migrate
+
+      # ================================
+      # Health checks
+      # ================================
+      - name: Check deployment health
+        run: |
+          echo "Checking backend health..."
+          kubectl wait --for=condition=ready pod -l app=backend -n focus-qa --timeout=120s
+
+          echo "Checking frontend health..."
+          kubectl wait --for=condition=ready pod -l app=frontend -n focus-qa --timeout=60s
+
+          echo "✅ All pods are healthy"
+
+      - name: Verify services
+        run: |
+          kubectl get pods -n focus-qa
+          kubectl get svc -n focus-qa
+          kubectl get ingress -n focus-qa
+
+      # ================================
+      # Rollback on failure
+      # ================================
+      - name: Rollback on failure
+        if: failure()
+        run: |
+          echo "❌ Deployment failed, rolling back..."
+
+          # Rollback backend
+          kubectl rollout undo deployment/backend -n focus-qa
+
+          # Rollback frontend
+          kubectl rollout undo deployment/frontend -n focus-qa
+
+          echo "✅ Rollback completed"
+
+      # ================================
+      # Notifications
+      # ================================
+      - name: Notify team
+        if: always()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: |
+            QA K8s Deployment: ${{ job.status }}
+            Branch: ${{ github.ref_name }}
+            Commit: ${{ github.sha }}
+            Author: ${{ github.actor }}
+            URL: https://qa.focus-app.ru
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+        continue-on-error: true
