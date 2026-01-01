@@ -52,8 +52,29 @@ jobs:
           kubectl get nodes
 
       # ================================
-      # Update image tags
+      # Apply manifests and update images
       # ================================
+      - name: Apply Kubernetes manifests
+        run: |
+          # 1. Create namespace if not exists
+          kubectl apply -f k8s/base/namespace.yaml
+
+          # 2. Apply configmap and secrets
+          kubectl apply -f k8s/base/configmap.yaml
+          kubectl apply -f k8s/base/secrets.yaml
+
+          # 3. Apply all other resources (creates or updates)
+          kubectl apply -f k8s/base/postgres-pvc.yaml
+          kubectl apply -f k8s/base/postgres-deployment.yaml
+          kubectl apply -f k8s/base/postgres-service.yaml
+          kubectl apply -f k8s/base/backend-deployment.yaml
+          kubectl apply -f k8s/base/backend-service.yaml
+          kubectl apply -f k8s/base/frontend-deployment.yaml
+          kubectl apply -f k8s/base/frontend-service.yaml
+          kubectl apply -f k8s/base/ingress.yaml
+
+          # Note: Namespace in manifests is 'focus', but we override with -n focus-qa
+
       - name: Update backend image
         run: |
           kubectl set image deployment/backend \
@@ -123,19 +144,3 @@ jobs:
 
           echo "✅ Rollback completed"
 
-      # ================================
-      # Notifications
-      # ================================
-      - name: Notify team
-        if: always()
-        uses: 8398a7/action-slack@v3
-        with:
-          status: ${{ job.status }}
-          text: |
-            QA K8s Deployment: ${{ job.status }}
-            Branch: ${{ github.ref_name }}
-            Commit: ${{ github.sha }}
-            Author: ${{ github.actor }}
-            URL: https://qa.focus-app.ru
-          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
-        continue-on-error: true

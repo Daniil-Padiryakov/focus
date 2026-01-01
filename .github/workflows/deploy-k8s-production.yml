@@ -88,14 +88,28 @@ jobs:
       # ================================
       # Deploy
       # ================================
+      - name: Apply Kubernetes manifests
+        run: |
+          # 1. Create namespace if not exists
+          kubectl apply -f k8s/base/namespace.yaml
+
+          # 2. Apply configmap and secrets
+          kubectl apply -f k8s/base/configmap.yaml
+          kubectl apply -f k8s/base/secrets.yaml
+
+          # 3. Apply all other resources (creates or updates)
+          kubectl apply -f k8s/base/postgres-pvc.yaml
+          kubectl apply -f k8s/base/postgres-deployment.yaml
+          kubectl apply -f k8s/base/postgres-service.yaml
+          kubectl apply -f k8s/base/backend-deployment.yaml
+          kubectl apply -f k8s/base/backend-service.yaml
+          kubectl apply -f k8s/base/frontend-deployment.yaml
+          kubectl apply -f k8s/base/frontend-service.yaml
+          kubectl apply -f k8s/base/ingress.yaml
+
       - name: Update backend image
         run: |
-          # Tag previous version for rollback
-          kubectl set image deployment/backend \
-            backend=${{ env.REGISTRY }}/${{ github.repository }}/backend:${{ env.IMAGE_TAG }}-previous \
-            -n focus --record || true
-
-          # Deploy new version
+          # Update to new version
           kubectl set image deployment/backend \
             backend=${{ env.REGISTRY }}/${{ github.repository }}/backend:${{ env.IMAGE_TAG }}-${{ github.sha }} \
             -n focus --record
@@ -187,25 +201,6 @@ jobs:
           kubectl rollout status deployment/frontend -n focus --timeout=3m
 
           echo "✅ Rollback completed"
-
-      # ================================
-      # Notifications
-      # ================================
-      - name: Notify team
-        if: always()
-        uses: 8398a7/action-slack@v3
-        with:
-          status: ${{ job.status }}
-          text: |
-            🚀 Production K8s Deployment: ${{ job.status }}
-
-            Commit: ${{ github.sha }}
-            Author: ${{ github.actor }}
-            Message: ${{ github.event.head_commit.message }}
-
-            ${{ job.status == 'success' && '✅ Deployment successful!' || '❌ Deployment failed - rollback initiated' }}
-          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
-        continue-on-error: true
 
       # ================================
       # Cleanup

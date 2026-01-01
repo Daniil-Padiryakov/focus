@@ -221,7 +221,6 @@ kubectl logs -n focus -l app=backend -f
 - `PRODUCTION_SSH_KEY` - SSH private key for production server
 - `PRODUCTION_USER` - SSH username
 - `PRODUCTION_HOST` - Server hostname/IP
-- `SLACK_WEBHOOK` - (Optional) Slack notifications
 
 **Usage:**
 
@@ -239,7 +238,6 @@ kubectl logs -n focus -l app=backend -f
 
 - `STAGING_KUBECONFIG` - Base64-encoded kubeconfig for staging cluster
 - `PRODUCTION_KUBECONFIG` - Base64-encoded kubeconfig for production cluster
-- `SLACK_WEBHOOK` - (Optional) Slack notifications
 
 **Setup Kubeconfig Secret:**
 
@@ -269,7 +267,6 @@ cat ~/.kube/config | base64 -w 0      # Linux
 - ✅ Database migrations (automatic)
 - ✅ Health checks (backend + frontend)
 - ✅ Automatic rollback on failure
-- ✅ Slack notifications (optional)
 
 **Kubernetes workflows additionally include:**
 

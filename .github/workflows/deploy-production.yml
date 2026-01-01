@@ -181,27 +181,6 @@ jobs:
           ENDSSH
 
       # ================================
-      # Notifications
-      # ================================
-      - name: Notify team
-        if: always()
-        uses: 8398a7/action-slack@v3
-        with:
-          status: ${{ job.status }}
-          text: |
-            🚀 Production Deployment: ${{ job.status }}
-
-            Commit: ${{ github.sha }}
-            Author: ${{ github.actor }}
-            Message: ${{ github.event.head_commit.message }}
-
-            URL: https://yourdomain.com
-
-            ${{ job.status == 'success' && '✅ Deployment successful!' || '❌ Deployment failed - rollback initiated' }}
-          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
-        continue-on-error: true
-
-      # ================================
       # Cleanup
       # ================================
       - name: Cleanup old images

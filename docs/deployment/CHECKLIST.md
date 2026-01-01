@@ -57,7 +57,6 @@ Choose your deployment method and configure required secrets:
 - [ ] `PRODUCTION_SSH_KEY` - SSH private key for production server
 - [ ] `PRODUCTION_USER` - SSH username
 - [ ] `PRODUCTION_HOST` - Server IP or hostname
-- [ ] `SLACK_WEBHOOK` - (Optional) Slack webhook for notifications
 
 #### Kubernetes Deployment
 
@@ -66,7 +65,6 @@ Choose your deployment method and configure required secrets:
   cat ~/.kube/config | base64 -w 0
   ```
 - [ ] `PRODUCTION_KUBECONFIG` - Base64-encoded kubeconfig for production cluster
-- [ ] `SLACK_WEBHOOK` - (Optional) Slack webhook for notifications
 
 ### 4. DNS Configuration
 
@@ -148,8 +146,8 @@ Choose your deployment method and configure required secrets:
   - [ ] Uptime monitoring (UptimeRobot, Pingdom)
 
 - [ ] Configure alerting:
-  - [ ] Slack/Email notifications
-  - [ ] PagerDuty for critical alerts
+  - [ ] Email notifications
+  - [ ] PagerDuty for critical alerts (optional)
 
 ### 9. Security
 

@@ -193,7 +193,6 @@ AWS_SECRET_ACCESS_KEY=your-secret
 # Usually not needed as we use services
 
 # Other integrations
-SLACK_WEBHOOK_URL=https://hooks.slack.com/...
 SENTRY_AUTH_TOKEN=your-token
 ```
 
@@ -257,20 +256,6 @@ tsconfig*.json @team-lead
 ---
 
 ## Notifications
-
-### Slack Integration (Optional)
-
-1. **Add Slack app:**
-   - Go to Slack App Directory
-   - Install "GitHub" app
-   - Connect to your repository
-
-2. **Configure notifications:**
-   ```
-   /github subscribe your-org/focus
-   /github subscribe your-org/focus reviews
-   /github subscribe your-org/focus comments
-   ```
 
 ### Email Notifications
 

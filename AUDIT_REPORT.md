@@ -166,14 +166,12 @@ git push origin main
 
 ```bash
 QA_KUBECONFIG       # Base64-encoded kubeconfig for QA cluster
-SLACK_WEBHOOK       # (Optional) Notifications
 ```
 
 **For Production:**
 
 ```bash
 PRODUCTION_KUBECONFIG   # Base64-encoded kubeconfig for prod cluster
-SLACK_WEBHOOK           # (Optional) Notifications
 ```
 
 **How to create:**
@@ -574,7 +572,6 @@ docs/: 0 files → 9 files (organized by category)
    # Add to GitHub Settings → Secrets:
    QA_KUBECONFIG           # Base64-encoded kubeconfig for QA cluster
    PRODUCTION_KUBECONFIG   # Base64-encoded kubeconfig for prod cluster
-   SLACK_WEBHOOK           # (Optional) For notifications
    ```
 
 3. **Setup Kubernetes clusters** (varies)

@@ -15,7 +15,6 @@ STAGING_USER          - deploy
 DATABASE_PASSWORD     - Staging database password
 JWT_SECRET            - Staging JWT secret (min 32 chars)
 REFRESH_SECRET        - Staging refresh token secret
-SLACK_WEBHOOK         - Slack webhook URL (optional)
 ```
 
 ### Для Production
@@ -125,14 +124,6 @@ docker stats
 # Health endpoint
 curl https://api.yourdomain.com/health
 ```
-
-### Slack Notifications
-
-Deployments отправляют уведомления в Slack:
-
-- ✅ Success: Зелёное сообщение с деталями deployment
-- ❌ Failure: Красное сообщение с ошибкой
-- 🔄 Rollback: Жёлтое сообщение с подтверждением rollback
 
 ## Troubleshooting
 

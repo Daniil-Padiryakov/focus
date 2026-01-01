@@ -42,7 +42,6 @@ Add:
 ```
 QA_KUBECONFIG           - Your QA cluster kubeconfig (base64-encoded)
 PRODUCTION_KUBECONFIG   - Your prod cluster kubeconfig (base64-encoded)
-SLACK_WEBHOOK           - (Optional) Slack webhook for notifications
 ```
 
 **Get kubeconfig:**
