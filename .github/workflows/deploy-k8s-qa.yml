@@ -52,51 +52,28 @@ jobs:
           kubectl get nodes
 
       # ================================
-      # Apply manifests and update images
+      # Deploy to Kubernetes
       # ================================
-      - name: Apply Kubernetes manifests
+      - name: Deploy to Kubernetes
         run: |
-          # 1. Create namespace if not exists
-          kubectl apply -f k8s/base/namespace.yaml
+          echo "🚀 Deploying to QA cluster..."
 
-          # 2. Apply configmap and secrets
-          kubectl apply -f k8s/base/configmap.yaml
-          kubectl apply -f k8s/base/secrets.yaml
+          # Apply all manifests (creates or updates resources)
+          # This will automatically create namespace, configmaps, secrets, deployments
+          kubectl apply -f k8s/base/
 
-          # 3. Apply all other resources (creates or updates)
-          kubectl apply -f k8s/base/postgres-pvc.yaml
-          kubectl apply -f k8s/base/postgres-deployment.yaml
-          kubectl apply -f k8s/base/postgres-service.yaml
-          kubectl apply -f k8s/base/backend-deployment.yaml
-          kubectl apply -f k8s/base/backend-service.yaml
-          kubectl apply -f k8s/base/frontend-deployment.yaml
-          kubectl apply -f k8s/base/frontend-service.yaml
-          kubectl apply -f k8s/base/ingress.yaml
-
-          # Note: Namespace in manifests is 'focus', but we override with -n focus-qa
-
-      - name: Update backend image
-        run: |
-          kubectl set image deployment/backend \
-            backend=${{ env.REGISTRY }}/${{ github.repository }}/backend:${{ env.IMAGE_TAG }} \
-            -n focus-qa
-
-      - name: Update frontend image
-        run: |
-          kubectl set image deployment/frontend \
-            frontend=${{ env.REGISTRY }}/${{ github.repository }}/frontend:${{ env.IMAGE_TAG }} \
-            -n focus-qa
+          echo "✅ Manifests applied"
 
       # ================================
       # Wait for rollout
       # ================================
       - name: Wait for backend rollout
         run: |
-          kubectl rollout status deployment/backend -n focus-qa --timeout=5m
+          kubectl rollout status deployment/backend -n focus --timeout=5m
 
       - name: Wait for frontend rollout
         run: |
-          kubectl rollout status deployment/frontend -n focus-qa --timeout=3m
+          kubectl rollout status deployment/frontend -n focus --timeout=3m
 
       # ================================
       # Run migrations
@@ -104,10 +81,10 @@ jobs:
       - name: Run database migrations
         run: |
           # Get first backend pod
-          POD=$(kubectl get pod -n focus-qa -l app=backend -o jsonpath='{.items[0].metadata.name}')
+          POD=$(kubectl get pod -n focus -l app=backend -o jsonpath='{.items[0].metadata.name}')
 
           # Run migrations
-          kubectl exec -n focus-qa $POD -- pnpm --filter @focus/backend db:migrate
+          kubectl exec -n focus $POD -- pnpm --filter @focus/backend db:migrate
 
       # ================================
       # Health checks
@@ -115,18 +92,18 @@ jobs:
       - name: Check deployment health
         run: |
           echo "Checking backend health..."
-          kubectl wait --for=condition=ready pod -l app=backend -n focus-qa --timeout=120s
+          kubectl wait --for=condition=ready pod -l app=backend -n focus --timeout=120s
 
           echo "Checking frontend health..."
-          kubectl wait --for=condition=ready pod -l app=frontend -n focus-qa --timeout=60s
+          kubectl wait --for=condition=ready pod -l app=frontend -n focus --timeout=60s
 
           echo "✅ All pods are healthy"
 
       - name: Verify services
         run: |
-          kubectl get pods -n focus-qa
-          kubectl get svc -n focus-qa
-          kubectl get ingress -n focus-qa
+          kubectl get pods -n focus
+          kubectl get svc -n focus
+          kubectl get ingress -n focus
 
       # ================================
       # Rollback on failure
@@ -137,10 +114,10 @@ jobs:
           echo "❌ Deployment failed, rolling back..."
 
           # Rollback backend
-          kubectl rollout undo deployment/backend -n focus-qa
+          kubectl rollout undo deployment/backend -n focus
 
           # Rollback frontend
-          kubectl rollout undo deployment/frontend -n focus-qa
+          kubectl rollout undo deployment/frontend -n focus
 
           echo "✅ Rollback completed"
 

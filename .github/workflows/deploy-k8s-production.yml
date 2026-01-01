@@ -88,37 +88,14 @@ jobs:
       # ================================
       # Deploy
       # ================================
-      - name: Apply Kubernetes manifests
+      - name: Deploy to Kubernetes
         run: |
-          # 1. Create namespace if not exists
-          kubectl apply -f k8s/base/namespace.yaml
+          echo "🚀 Deploying to production cluster..."
 
-          # 2. Apply configmap and secrets
-          kubectl apply -f k8s/base/configmap.yaml
-          kubectl apply -f k8s/base/secrets.yaml
+          # Apply all manifests (creates or updates resources)
+          kubectl apply -f k8s/base/
 
-          # 3. Apply all other resources (creates or updates)
-          kubectl apply -f k8s/base/postgres-pvc.yaml
-          kubectl apply -f k8s/base/postgres-deployment.yaml
-          kubectl apply -f k8s/base/postgres-service.yaml
-          kubectl apply -f k8s/base/backend-deployment.yaml
-          kubectl apply -f k8s/base/backend-service.yaml
-          kubectl apply -f k8s/base/frontend-deployment.yaml
-          kubectl apply -f k8s/base/frontend-service.yaml
-          kubectl apply -f k8s/base/ingress.yaml
-
-      - name: Update backend image
-        run: |
-          # Update to new version
-          kubectl set image deployment/backend \
-            backend=${{ env.REGISTRY }}/${{ github.repository }}/backend:${{ env.IMAGE_TAG }}-${{ github.sha }} \
-            -n focus --record
-
-      - name: Update frontend image
-        run: |
-          kubectl set image deployment/frontend \
-            frontend=${{ env.REGISTRY }}/${{ github.repository }}/frontend:${{ env.IMAGE_TAG }}-${{ github.sha }} \
-            -n focus --record
+          echo "✅ Manifests applied"
 
       # ================================
       # Wait for rollout
