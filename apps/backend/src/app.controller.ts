@@ -5,6 +5,11 @@ import { ConfigService } from './config/config.service';
 export class AppController {
   constructor(private readonly configService: ConfigService) {}
 
+  @Get('live')
+  live() {
+    return 'ok';
+  }
+
   @Get('health')
   getHealth() {
     return {
