@@ -109,14 +109,14 @@ spec:
               value: 'false'
           livenessProbe:
             httpGet:
-              path: /health
+              path: /api/health
               port: 3000
             initialDelaySeconds: 30
             periodSeconds: 10
             timeoutSeconds: 5
           readinessProbe:
             httpGet:
-              path: /health
+              path: /api/health
               port: 3000
             initialDelaySeconds: 10
             periodSeconds: 5
