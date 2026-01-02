@@ -8,9 +8,14 @@
 name: Deploy to K8s QA
 
 on:
-  push:
+  # Trigger after Docker Build completes successfully
+  workflow_run:
+    workflows: ["Docker Build"]
+    types:
+      - completed
     branches:
       - develop
+  # Allow manual trigger
   workflow_dispatch:
 
 env:
@@ -21,11 +26,27 @@ jobs:
   deploy:
     name: Deploy to QA Cluster
     runs-on: ubuntu-latest
+    # Only run if Docker Build was successful
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
     environment:
       name: qa
       url: https://qa.focus-app.ru
 
     steps:
+      # ================================
+      # Pre-flight check
+      # ================================
+      - name: Check Docker Build status
+        if: github.event_name == 'workflow_run'
+        run: |
+          echo "🔍 Docker Build workflow result: ${{ github.event.workflow_run.conclusion }}"
+          if [ "${{ github.event.workflow_run.conclusion }}" != "success" ]; then
+            echo "❌ Docker Build failed or was cancelled"
+            echo "Deployment aborted"
+            exit 1
+          fi
+          echo "✅ Docker Build successful, proceeding with deployment"
+
       # ================================
       # Checkout
       # ================================
