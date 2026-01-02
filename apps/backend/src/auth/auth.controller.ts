@@ -4,7 +4,9 @@ import { SignupDto } from '@/auth/dto/signup.dto';
 @Controller('auth')
 export class AuthController {
   @Post('signup')
-  signup(@Body() _dto: SignupDto) {}
+  signup(@Body() _dto: SignupDto) {
+    console.log('signup');
+  }
 
   @Post('login')
   login() {}
