@@ -12,7 +12,7 @@ export interface ApiError {
   code: string;
   message: string;
   details?: unknown;
-  test123?: unknown;
+  test1234?: unknown;
 }
 
 /**
