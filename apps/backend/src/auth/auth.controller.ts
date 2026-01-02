@@ -5,7 +5,7 @@ import { SignupDto } from '@/auth/dto/signup.dto';
 export class AuthController {
   @Post('signup')
   signup(@Body() _dto: SignupDto) {
-    console.log('signup123');
+    console.log('signup1234');
   }
 
   @Post('login')
