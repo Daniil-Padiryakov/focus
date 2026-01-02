@@ -70,7 +70,7 @@ RUN pnpm build
 # ✅ OPTIMIZATION: Deploy production dependencies to /app/pruned
 # Это создаёт чистую структуру только с prod deps
 WORKDIR /app
-RUN pnpm --filter @focus/backend --prod deploy pruned
+RUN pnpm --filter @focus/backend --prod --legacy deploy pruned
 
 # ================================
 # Stage 4: DEVELOPMENT
