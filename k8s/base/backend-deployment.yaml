@@ -22,7 +22,7 @@ spec:
         - name: run-migrations
           image: ghcr.io/daniil-padiryakov/focus/backend:develop
           imagePullPolicy: Always
-          command: ['pnpm', '--filter', '@focus/backend', 'db:migrate']
+          command: ['node', 'node_modules/knex/bin/cli.js', 'migrate:latest', '--knexfile', 'dist/database/knexfile.js']
           env:
             - name: NODE_ENV
               value: 'production'
