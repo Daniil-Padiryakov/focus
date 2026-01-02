@@ -239,10 +239,8 @@ jobs:
           kubectl rollout status deployment/backend -n focus --timeout=5m
           kubectl rollout status deployment/frontend -n focus --timeout=3m
 
-      - name: Run migrations
-        run: |
-          POD=$(kubectl get pod -n focus -l app=backend -o jsonpath='{.items[0].metadata.name}')
-          kubectl exec -n focus $POD -c backend -- node ./node_modules/.bin/pnpm --filter @focus/backend db:migrate
+      - name: Migrations handled by initContainer
+        run: echo "✅ Migrations are executed by initContainer, skipping manual run"
 
       - name: Verify deployment
         run: |
@@ -321,10 +319,8 @@ jobs:
           kubectl rollout status deployment/backend -n focus --timeout=5m
           kubectl rollout status deployment/frontend -n focus --timeout=3m
 
-      - name: Run migrations
-        run: |
-          POD=$(kubectl get pod -n focus -l app=backend -o jsonpath='{.items[0].metadata.name}')
-          kubectl exec -n focus $POD -c backend -- node ./node_modules/.bin/pnpm --filter @focus/backend db:migrate
+      - name: Migrations handled by initContainer
+        run: echo "✅ Migrations are executed by initContainer, skipping manual run"
 
       - name: Verify deployment
         run: |
