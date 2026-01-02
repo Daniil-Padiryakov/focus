@@ -21,6 +21,7 @@ spec:
         # Run migrations before starting the app
         - name: run-migrations
           image: ghcr.io/daniil-padiryakov/focus/backend:develop
+          imagePullPolicy: Always
           command: ['pnpm', '--filter', '@focus/backend', 'db:migrate']
           env:
             - name: NODE_ENV
@@ -47,6 +48,7 @@ spec:
       containers:
         - name: backend
           image: ghcr.io/daniil-padiryakov/focus/backend:develop
+          imagePullPolicy: Always
           ports:
             - containerPort: 3000
               name: http

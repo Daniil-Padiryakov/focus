@@ -20,6 +20,7 @@ spec:
       containers:
         - name: frontend
           image: ghcr.io/daniil-padiryakov/focus/frontend:develop
+          imagePullPolicy: Always
           ports:
             - containerPort: 80
               name: http
