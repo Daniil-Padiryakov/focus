@@ -106,17 +106,17 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-      
+
       - name: Log in to Container Registry
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      
+
       - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v5
@@ -127,7 +127,7 @@ jobs:
             type=sha,prefix={{branch}}-
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-      
+
       - name: Build and push frontend image
         uses: docker/build-push-action@v5
         with:
@@ -142,7 +142,7 @@ jobs:
           build-args: |
             BUILDKIT_INLINE_CACHE=1
             VITE_API_URL=${{ github.ref == 'refs/heads/main' && 'https://api.yourdomain.com' || 'https://api-test.yourdomain.com' }}
-      
+
       - name: Image details
         run: |
           echo "Frontend image built and pushed:"
@@ -196,6 +196,10 @@ jobs:
           echo "${{ secrets.QA_KUBECONFIG }}" | base64 -d > ~/.kube/config
           chmod 600 ~/.kube/config
 
+      - name: Normalize image name
+        run: |
+          echo "IMAGE_NAME_LOWER=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
       - name: Deploy to Kubernetes
         run: |
           echo "🚀 Deploying to QA cluster..."
@@ -205,20 +209,21 @@ jobs:
       - name: Update images and force restart
         run: |
           echo "🔄 Updating images to ${{ github.ref_name }} tag..."
-
+          echo "📦 Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LOWER }}"
+        
           kubectl set image deployment/backend \
-            backend=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:${{ github.ref_name }} \
-            run-migrations=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:${{ github.ref_name }} \
+            backend=${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LOWER }}/backend:${{ github.ref_name }} \
+            run-migrations=${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LOWER }}/backend:${{ github.ref_name }} \
             -n focus
-
+        
           kubectl set image deployment/frontend \
-            frontend=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:${{ github.ref_name }} \
+            frontend=${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LOWER }}/frontend:${{ github.ref_name }} \
             -n focus
-
+        
           echo "🔄 Force restarting deployments..."
           kubectl rollout restart deployment/backend -n focus
           kubectl rollout restart deployment/frontend -n focus
-
+        
           echo "✅ Images updated and deployments restarted"
 
       - name: Check pods status before rollout
@@ -273,6 +278,10 @@ jobs:
           echo "${{ secrets.PRODUCTION_KUBECONFIG }}" | base64 -d > ~/.kube/config
           chmod 600 ~/.kube/config
 
+      - name: Normalize image name
+        run: |
+          echo "IMAGE_NAME_LOWER=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
       - name: Deploy to Kubernetes
         run: |
           echo "🚀 Deploying to production cluster..."
@@ -282,20 +291,21 @@ jobs:
       - name: Update images and force restart
         run: |
           echo "🔄 Updating images to ${{ github.ref_name }} tag..."
-
+          echo "📦 Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LOWER }}"
+          
           kubectl set image deployment/backend \
-            backend=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:${{ github.ref_name }} \
-            run-migrations=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:${{ github.ref_name }} \
+            backend=${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LOWER }}/backend:${{ github.ref_name }} \
+            run-migrations=${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LOWER }}/backend:${{ github.ref_name }} \
             -n focus
-
+          
           kubectl set image deployment/frontend \
-            frontend=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:${{ github.ref_name }} \
+            frontend=${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LOWER }}/frontend:${{ github.ref_name }} \
             -n focus
-
+          
           echo "🔄 Force restarting deployments..."
           kubectl rollout restart deployment/backend -n focus
           kubectl rollout restart deployment/frontend -n focus
-
+          
           echo "✅ Images updated and deployments restarted"
 
       - name: Check pods status before rollout
