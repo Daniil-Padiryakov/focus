@@ -7,13 +7,16 @@
 name: Deploy to K8s Production
 
 on:
-  # Trigger after Docker Build completes successfully
-  workflow_run:
-    workflows: ["Docker Build"]
-    types:
-      - completed
+  push:
     branches:
       - main
+    paths-ignore:
+      # Don't deploy if only docs/configs changed
+      - 'docs/**'
+      - '**.md'
+      - '.github/workflows/ci.yml'
+      - '.github/workflows/code-quality.yml'
+      - '.github/workflows/docker-scan.yml'
   # Allow manual trigger
   workflow_dispatch:
 
@@ -26,28 +29,12 @@ jobs:
     name: Deploy to Production Cluster
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    # Only run if Docker Build was successful
-    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
 
     environment:
       name: production
       url: https://focus-app.ru
 
     steps:
-      # ================================
-      # Pre-flight check
-      # ================================
-      - name: Check Docker Build status
-        if: github.event_name == 'workflow_run'
-        run: |
-          echo "🔍 Docker Build workflow result: ${{ github.event.workflow_run.conclusion }}"
-          if [ "${{ github.event.workflow_run.conclusion }}" != "success" ]; then
-            echo "❌ Docker Build failed or was cancelled"
-            echo "Deployment aborted"
-            exit 1
-          fi
-          echo "✅ Docker Build successful, proceeding with deployment"
-
       # ================================
       # Checkout
       # ================================
@@ -60,6 +47,7 @@ jobs:
       - name: Verify images exist
         run: |
           echo "🔍 Verifying Docker images in registry..."
+          echo ""
 
           BACKEND_IMAGE="${{ env.REGISTRY }}/${{ github.repository }}/backend:${{ env.IMAGE_TAG }}"
           FRONTEND_IMAGE="${{ env.REGISTRY }}/${{ github.repository }}/frontend:${{ env.IMAGE_TAG }}"
@@ -68,10 +56,21 @@ jobs:
           if docker manifest inspect $BACKEND_IMAGE > /dev/null 2>&1; then
             echo "✅ Backend image exists"
           else
-            echo "❌ Backend image NOT found: $BACKEND_IMAGE"
+            echo "❌ Backend image NOT found in registry"
             echo ""
-            echo "⚠️ This image needs to be built first!"
-            echo "Make sure the docker-build workflow has run successfully."
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "⚠️  IMAGE NOT READY YET"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo ""
+            echo "This usually means Docker Build workflow is still running."
+            echo ""
+            echo "What to do:"
+            echo "  1. Check 'Docker Build' workflow status"
+            echo "  2. Wait for it to complete (~10-15 minutes)"
+            echo "  3. Manually trigger this workflow again"
+            echo ""
+            echo "Missing image: $BACKEND_IMAGE"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             exit 1
           fi
 
@@ -80,15 +79,28 @@ jobs:
           if docker manifest inspect $FRONTEND_IMAGE > /dev/null 2>&1; then
             echo "✅ Frontend image exists"
           else
-            echo "❌ Frontend image NOT found: $FRONTEND_IMAGE"
+            echo "❌ Frontend image NOT found in registry"
             echo ""
-            echo "⚠️ This image needs to be built first!"
-            echo "Make sure the docker-build workflow has run successfully."
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "⚠️  IMAGE NOT READY YET"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo ""
+            echo "This usually means Docker Build workflow is still running."
+            echo ""
+            echo "What to do:"
+            echo "  1. Check 'Docker Build' workflow status"
+            echo "  2. Wait for it to complete (~10-15 minutes)"
+            echo "  3. Manually trigger this workflow again"
+            echo ""
+            echo "Missing image: $FRONTEND_IMAGE"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             exit 1
           fi
 
           echo ""
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "✅ All required images exist in registry"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
       # ================================
       # Setup Kubernetes
