@@ -242,7 +242,7 @@ jobs:
       - name: Run migrations
         run: |
           POD=$(kubectl get pod -n focus -l app=backend -o jsonpath='{.items[0].metadata.name}')
-          kubectl exec -n focus $POD -c backend -- pnpm --filter @focus/backend db:migrate
+          kubectl exec -n focus $POD -c backend -- node ./node_modules/.bin/pnpm --filter @focus/backend db:migrate
 
       - name: Verify deployment
         run: |
@@ -324,7 +324,7 @@ jobs:
       - name: Run migrations
         run: |
           POD=$(kubectl get pod -n focus -l app=backend -o jsonpath='{.items[0].metadata.name}')
-          kubectl exec -n focus $POD -c backend -- pnpm --filter @focus/backend db:migrate
+          kubectl exec -n focus $POD -c backend -- node ./node_modules/.bin/pnpm --filter @focus/backend db:migrate
 
       - name: Verify deployment
         run: |
