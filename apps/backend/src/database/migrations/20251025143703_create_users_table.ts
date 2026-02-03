@@ -1,7 +1,7 @@
 import { Knex } from 'knex';
 
 /**
- * Migration: Create users table
+ * Migration: Create user table
  *
  * Created: 2025-10-25
  *
@@ -79,15 +79,15 @@ export async function up(knex: Knex): Promise<void> {
     EXECUTE FUNCTION focus.trigger_set_timestamp();
   `);
 
-  console.log(' Created users table with indexes and triggers');
+  console.log(' Created user table with indexes and triggers');
 }
 
 export async function down(knex: Knex): Promise<void> {
   // ================================
   // Rollback: Drop trigger и table
   // ================================
-  await knex.raw('DROP TRIGGER IF EXISTS set_users_updated_at ON users');
-  await knex.schema.dropTableIfExists('users');
+  await knex.raw('DROP TRIGGER IF EXISTS set_users_updated_at ON user');
+  await knex.schema.dropTableIfExists('user');
 
-  console.log(' Dropped users table');
+  console.log(' Dropped user table');
 }

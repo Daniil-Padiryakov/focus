@@ -17,7 +17,7 @@ export async function seed(knex: Knex): Promise<void> {
   // ================================
   // Get demo user ID
   // ================================
-  const demoUser: any = await knex('users')
+  const demoUser: any = await knex('user')
     .where({ email: 'demo@example.com' })
     .first();
 

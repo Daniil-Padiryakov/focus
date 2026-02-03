@@ -27,7 +27,7 @@ export async function up(knex: Knex): Promise<void> {
       .unsigned()
       .notNullable()
       .references('user_id')
-      .inTable('users')
+      .inTable('user')
       .onDelete('CASCADE') // Если user удалён → удалить его tokens
       .onUpdate('CASCADE') // Если user_id изменён → обновить
       .comment('User who owns this token');

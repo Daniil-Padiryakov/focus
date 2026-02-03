@@ -22,7 +22,7 @@ body:
     attributes:
       label: Proposed Solution
       description: How would you like this feature to work?
-      placeholder: Add a button that allows users to...
+      placeholder: Add a button that allows user to...
     validations:
       required: true
 
@@ -40,7 +40,7 @@ body:
       description: How important is this feature?
       options:
         - Critical (business blocking)
-        - High (important for users)
+        - High (important for user)
         - Medium (nice to have)
         - Low (future enhancement)
     validations:

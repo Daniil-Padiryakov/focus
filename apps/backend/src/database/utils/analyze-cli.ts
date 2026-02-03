@@ -7,7 +7,7 @@ import { QueryAnalyzer } from './query-analyzer';
  * CLI для database analysis
  *
  * Usage:
- *   ts-node analyze-cli.ts table-stats users
+ *   ts-node analyze-cli.ts table-stats user
  *   ts-node analyze-cli.ts unused-indexes
  */
 

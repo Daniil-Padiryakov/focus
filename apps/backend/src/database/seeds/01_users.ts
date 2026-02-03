@@ -2,10 +2,10 @@ import { Knex } from 'knex';
 import * as bcrypt from 'bcrypt';
 
 /**
- * Seed: Demo users для development
+ * Seed: Demo user для development
  *
  * Creates:
- * - 2 demo users с hashed passwords
+ * - 2 demo user с hashed passwords
  * - Different user profiles для testing
  *
  * Password для всех: "password123"
@@ -14,7 +14,7 @@ export async function seed(knex: Knex): Promise<void> {
   // ================================
   // Clear existing data (только в dev!)
   // ================================
-  await knex('users').del();
+  await knex('user').del();
 
   // ================================
   // Hash password
@@ -23,9 +23,9 @@ export async function seed(knex: Knex): Promise<void> {
   const passwordHash = await bcrypt.hash('password123', saltRounds);
 
   // ================================
-  // Insert demo users
+  // Insert demo user
   // ================================
-  await knex('users').insert([
+  await knex('user').insert([
     {
       email: 'demo@example.com',
       password_hash: passwordHash,
@@ -36,5 +36,5 @@ export async function seed(knex: Knex): Promise<void> {
     },
   ]);
 
-  console.log(' Seeded 2 demo users (password: "password123")');
+  console.log(' Seeded 2 demo user (password: "password123")');
 }

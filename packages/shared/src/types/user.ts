@@ -5,16 +5,6 @@
 export interface User {
   user_id: number;
   email: string;
-  created_at: Date;
-  updated_at: Date;
-}
-
-/**
- * DTO for user registration
- */
-export interface CreateUserDto {
-  email: string;
-  password: string;
 }
 
 /**

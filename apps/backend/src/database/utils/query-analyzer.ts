@@ -13,7 +13,7 @@ export class QueryAnalyzer {
    * Analyze query execution plan
    *
    * @example
-   * const query = knex('users').where({ email: 'test@example.com' });
+   * const query = knex('user').where({ email: 'test@example.com' });
    * await queryAnalyzer.explain(query);
    */
   async explain(query: Knex.QueryBuilder): Promise<void> {

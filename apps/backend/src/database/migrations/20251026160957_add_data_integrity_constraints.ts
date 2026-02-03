@@ -54,13 +54,13 @@ export async function up(knex: Knex): Promise<void> {
 export async function down(knex: Knex): Promise<void> {
   // Drop constraints (обратный порядок не важен)
   await knex.raw(
-    'ALTER TABLE users DROP CONSTRAINT IF EXISTS check_email_format',
+    'ALTER TABLE user DROP CONSTRAINT IF EXISTS check_email_format',
   );
   await knex.raw(
-    'ALTER TABLE users DROP CONSTRAINT IF EXISTS check_updated_after_created',
+    'ALTER TABLE user DROP CONSTRAINT IF EXISTS check_updated_after_created',
   );
   await knex.raw(
-    'ALTER TABLE users DROP CONSTRAINT IF EXISTS check_deleted_after_created',
+    'ALTER TABLE user DROP CONSTRAINT IF EXISTS check_deleted_after_created',
   );
 
   console.log('✅ Dropped data integrity constraints');

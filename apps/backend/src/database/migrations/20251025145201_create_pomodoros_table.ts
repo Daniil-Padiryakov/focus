@@ -7,11 +7,11 @@ import { Knex } from 'knex';
  *
  * Description:
  * - Pomodoro sessions tracking
- * - Связан с users через foreign key
+ * - Связан с user через foreign key
  * - Support для different types (work, short_break, long_break)
  * - Status tracking (running, paused, completed)
  *
- * Dependencies: users table
+ * Dependencies: user table
  * Breaking: No (new table)
  * Rollback: Safe (drops table)
  */
@@ -30,7 +30,7 @@ export async function up(knex: Knex): Promise<void> {
       .unsigned()
       .notNullable()
       .references('user_id')
-      .inTable('users')
+      .inTable('user')
       .onDelete('CASCADE') // Если user удалён → удалить его pomodoros
       .onUpdate('CASCADE') // Если user_id изменён → обновить
       .comment('User who owns this pomodoro');

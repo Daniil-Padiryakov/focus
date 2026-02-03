@@ -133,7 +133,7 @@ export async function up(knex: Knex): Promise<void> {
       .unsigned()
       .notNullable()
       .references('user_id')
-      .inTable('users')
+      .inTable('user')
       .onDelete('CASCADE');
     table.string('title', 255).notNullable();
     table.text('description').nullable();
@@ -170,17 +170,17 @@ export async function down(knex: Knex): Promise<void> {
 import { Knex } from 'knex';
 
 export async function up(knex: Knex): Promise<void> {
-  await knex.schema.table('users', (table) => {
+  await knex.schema.table('user', (table) => {
     table.string('avatar_url', 500).nullable().comment('User avatar URL');
   });
-  console.log('✅ Added avatar_url to users');
+  console.log('✅ Added avatar_url to user');
 }
 
 export async function down(knex: Knex): Promise<void> {
-  await knex.schema.table('users', (table) => {
+  await knex.schema.table('user', (table) => {
     table.dropColumn('avatar_url');
   });
-  console.log('✅ Removed avatar_url from users');
+  console.log('✅ Removed avatar_url from user');
 }
 ```
 
@@ -378,7 +378,7 @@ pnpm db:psql:interactive
 \di
 
 # Check constraints
-\d+ users
+\d+ user
 ```
 
 ## Backup Strategy
